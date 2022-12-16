@@ -1,0 +1,12 @@
+IO
+nupack-4.0.0.27
+Ignore
+__pycache__
+.venv
+.vscode
+.pytest_cache
+.DS_Store
+*.xlsx
+*.egg-info
+*.pkl
+*.csv
