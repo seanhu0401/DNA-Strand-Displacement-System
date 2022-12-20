@@ -1,6 +1,8 @@
 import glob
 import os
-import dna_sdr.data_process.data_organization as do
+import dna_sdr.data_process.list_generation as lst_gen
+import dna_sdr.data_process.combine_data as cd
+import dna_sdr.data_process.group as grouping
 import pandas as pd
 import shutil
 
@@ -20,7 +22,7 @@ if __name__ == "__main__":
         if f not in file_list:
             file_list.append(f)
 
-    trig_list = do.trig_list_gen(file_list)
+    trig_list = lst_gen.trig_list_gen(file_list)
     trig_type_dict = dict(zip(list(range(1, len(trig_list) + 1)), trig_list))
 
     if not trig_list:
@@ -38,14 +40,14 @@ if __name__ == "__main__":
             norm_cdata_path,
             sum_data_path,
             processed_path,
-        ) = do.file_path_generation(test_type, trig_type_selected)
+        ) = lst_gen.file_path_generation(test_type, trig_type_selected)
 
-        groups, group_list = do.group_query(fname)
+        groups, group_list = grouping.group_query(fname)
         group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
-        time_list_mins = do.time_list_generation(60)
+        time_list_mins = lst_gen.time_list_generation(60)
 
         # Combined the data together and check for conditions that are not accurate after normalization with the positive and negative control - generate a combined data dataframe for further analysis.
-        combined_data = do.data_combination(
+        combined_data = cd.data_combination(
             fname,
             extension,
             groups,
@@ -58,7 +60,7 @@ if __name__ == "__main__":
 
         # Generate the groups presented in the combined data
         con_tube_number = groups * 4 + 1
-        group_of_samples, presented_groups = do.group_generation(
+        group_of_samples, presented_groups = grouping.group_generation(
             combined_data, con_tube_number
         )
 
