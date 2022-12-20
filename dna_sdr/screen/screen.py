@@ -55,6 +55,7 @@ if __name__ == "__main__":
 
         # export the combined file for storage + quick access
         combined_data.to_pickle(combined_data_path)
+
         # Generate the groups presented in the combined data
         con_tube_number = groups * 4 + 1
         group_of_samples, presented_groups = do.group_generation(
