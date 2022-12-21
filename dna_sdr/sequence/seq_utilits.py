@@ -19,7 +19,7 @@ def sequence_comparison(seq_1: DNA, seq_2: DNA):
         if seq_1.seq[counter] == seq_2.seq[counter]:
             comparison_lst.append(comp_val)
         elif seq_1.seq[counter] != seq_2.seq[counter]:
-            comp_val = comp_dict[seq_2[counter]]
+            comp_val = comp_dict[seq_2.seq[counter]]
             comparison_lst.append(comp_val)
         base_loc_lst.append(counter + 1)
         counter += 1
