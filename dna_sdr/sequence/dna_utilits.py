@@ -1,8 +1,7 @@
 import regex as re
-from dna_class import DNA
+from dataclasses import dataclass, field
 
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
-comp_dict = {"t": 1, "g": 2, "c": 3, "a": 4}
 
 
 def remove(seq: str):
@@ -18,26 +17,28 @@ def reverse_seq(seq: str):
     return seq[::-1]
 
 
-# *Think of better name for the method
-# This function is currently used to compare to sequence, mainly the triggers, to identify the location(s) that has/have mismatch(es)
-# They should be equal length in bases if there is no modification to the toehold + dangles - not applicable with those modification currently
-def sequence_comparison(seq_1: DNA, seq_2: DNA):
-    comparison_lst = []
-    base_loc_lst = []
-    counter = 0
+@dataclass
+class DNA:
+    __slot__ = ["seq", "base_count"]
+    seq: str
+    base_count: int = field(init=False)
 
-    if seq_1.base_count != seq_2.base_count:
-        raise Exception("The two sequences are not equal length")
+    def __post_init__(self):
+        self.seq = remove(self.seq).lower()
+        self.base_count = len(self.seq)
 
-    while counter <= seq_1.base_count:
-        comp_val = 0
-        if seq_1.seq[counter] == seq_2.seq[counter]:
-            comparison_lst.append(comp_val)
-        elif seq_1.seq[counter] != seq_2.seq[counter]:
-            comp_val = comp_dict[seq_2[counter]]
-            comparison_lst.append(comp_val)
-        base_loc_lst.append(counter + 1)
-        counter += 1
+    def reverse_seq(self):
+        self.reverse = self.seq[::-1]
 
-    seq_comp_dict = dict(zip(base_loc_lst, comparison_lst))
-    return seq_comp_dict
+    def reverse_complement(self):
+        inverse = self.reverse
+        base_list = list()
+        for base in inverse:
+            base_list.append(base_pairing[base])
+        complment_seq = "".join(base_list)
+        return complment_seq
+
+
+# TODO: Make a dataclass for triggers
+# @dataclass
+# class trigger(DNA):
