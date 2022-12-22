@@ -11,18 +11,22 @@ def sequence_comparison(seq_1: DNA, seq_2: DNA):
     base_loc_lst = []
     counter = 0
 
-    if seq_1.base_count != seq_2.base_count:
+    if type(seq_1) != DNA and type(seq_2) != DNA:
+        raise TypeError("The input is not a DNA type")
+
+    elif seq_1.base_count != seq_2.base_count:
         raise Exception("The two sequences are not equal length")
 
-    while counter < seq_1.base_count:
-        comp_val = 0
-        if seq_1.seq[counter] == seq_2.seq[counter]:
-            comparison_lst.append(comp_val)
-        elif seq_1.seq[counter] != seq_2.seq[counter]:
-            comp_val = comp_dict[seq_2.seq[counter]]
-            comparison_lst.append(comp_val)
-        base_loc_lst.append(counter + 1)
-        counter += 1
+    else:
+        while counter < seq_1.base_count:
+            comp_val = 0
+            if seq_1.seq[counter] == seq_2.seq[counter]:
+                comparison_lst.append(comp_val)
+            elif seq_1.seq[counter] != seq_2.seq[counter]:
+                comp_val = comp_dict[seq_2.seq[counter]]
+                comparison_lst.append(comp_val)
+            base_loc_lst.append(counter + 1)
+            counter += 1
+        seq_comp_dict = dict(zip(base_loc_lst, comparison_lst))
 
-    seq_comp_dict = dict(zip(base_loc_lst, comparison_lst))
     return seq_comp_dict
