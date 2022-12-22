@@ -3,20 +3,6 @@ from dataclasses import dataclass, field
 
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
 
-# ? Think about remove and is_dna function - do I still need them here or I should just put them into the DNA dataclass
-def remove(seq: str):
-    return seq.replace(" ", "")
-
-
-def is_dna(seq: str):
-    lower_case_seq = remove(seq).lower()
-    return bool(re.match("^[atgc]+$", lower_case_seq))
-
-
-# ! This method is currently not used and is incroprated into the DNA dataclass
-def reverse_seq(seq: str):
-    return seq[::-1]
-
 
 @dataclass
 class DNA:
@@ -25,8 +11,8 @@ class DNA:
     base_count: int = field(init=False)
 
     def __post_init__(self):
-        if is_dna(self.seq):
-            self.seq = remove(self.seq).lower()
+        self.seq = self.seq.replace(" ", "").lower()
+        if bool(re.match("^[atgc]+$", self.seq)):
             self.base_count = len(self.seq)
         else:
             raise ValueError(
