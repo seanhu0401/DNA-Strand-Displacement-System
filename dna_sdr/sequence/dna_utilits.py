@@ -11,8 +11,9 @@ class DNA:
     base_count: int = field(init=False)
 
     def __post_init__(self):
-        self.seq = self.seq.replace(" ", "").lower()
-        if bool(re.match("^[atgc]+$", self.seq)):
+        # *Check if the input sequence is DNA
+        if bool(re.match("^[atgc ATGC]+$", self.seq)):
+            self.seq = self.seq.replace(" ", "").lower()
             self.base_count = len(self.seq)
         else:
             raise ValueError(
