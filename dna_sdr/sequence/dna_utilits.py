@@ -35,5 +35,6 @@ class DNA:
 
 
 # TODO: Make a dataclass for triggers
-# @dataclass
-# class trigger(DNA):
+@dataclass
+class trigger(DNA):
+    toehold: int
