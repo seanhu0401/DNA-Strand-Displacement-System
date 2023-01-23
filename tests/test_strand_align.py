@@ -4,9 +4,11 @@ from dna_sdr.sequence.seq_utilits import strand_alignment
 
 
 @pytest.fixture
-def tb_mismatch():
+def default_tb_mismatch():
     return (True, 7)
 
+
+# TODO: Simplify the test file
 
 no_tb_mismatch_test_lst = [
     ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (0, [], 5, 7)),
@@ -19,6 +21,7 @@ no_tb_mismatch_test_lst = [
         (6, [16, 17, 18, 28, 29, 30], 5, 7),
     ),
     ("CA CATCT CA CAATC CA TCT CA CCACC CA", (0, [], 0, 7)),
+    ("CATCT CA CAATC CA TCT CA CCACC CA", (0, [], 0, 5)),
     ("CA CATCT FA CAATC CA TCT CA CCACC CA", (ValueError)),
 ]
 
@@ -38,6 +41,11 @@ tb_mismatch_test_lst = [
     ("CA CATCT FA CAA TC CATCT CA CCACC CA", (ValueError)),
 ]
 
+# TODO: More test case for the not defualt list
+tb_mismatch_test_not_defualt_lst = [
+    ("CATCT CA CAA TC CATCT CA CCACC CA", (True, 5), (0, [], 0, 5))
+]
+
 
 @pytest.mark.parametrize("trigger, expected", no_tb_mismatch_test_lst)
 def test_strand_align_no_tb_mismatch(Incumb_Seq, Base_Seq, trigger, expected):
@@ -49,9 +57,30 @@ def test_strand_align_no_tb_mismatch(Incumb_Seq, Base_Seq, trigger, expected):
 
 
 @pytest.mark.parametrize("trigger, expected", tb_mismatch_test_lst)
-def test_strand_align_tb_mismatch(Incumb_Seq, Base_Seq, trigger, tb_mismatch, expected):
+def test_strand_align_tb_mismatch(
+    Incumb_Seq, Base_Seq, trigger, default_tb_mismatch, expected
+):
     try:
-        assert strand_alignment(Base_Seq, Incumb_Seq, trigger, *tb_mismatch) == expected
+        assert (
+            strand_alignment(Base_Seq, Incumb_Seq, trigger, *default_tb_mismatch)
+            == expected
+        )
     except:
         with pytest.raises(TypeError):
-            strand_alignment(Base_Seq, Incumb_Seq, trigger, *tb_mismatch)
+            strand_alignment(Base_Seq, Incumb_Seq, trigger, *default_tb_mismatch)
+
+
+@pytest.mark.parametrize(
+    "trigger, tb_mismatch_option, expected", tb_mismatch_test_not_defualt_lst
+)
+def test_strand_align_tb_mismatch_not_default(
+    Incumb_Seq, Base_Seq, trigger, tb_mismatch_option, expected
+):
+    try:
+        assert (
+            strand_alignment(Base_Seq, Incumb_Seq, trigger, *tb_mismatch_option)
+            == expected
+        )
+    except:
+        with pytest.raises(TypeError):
+            strand_alignment(Base_Seq, Incumb_Seq, trigger, *tb_mismatch_option)

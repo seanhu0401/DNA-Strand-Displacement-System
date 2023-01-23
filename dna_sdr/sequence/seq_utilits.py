@@ -36,7 +36,6 @@ def sequence_comparison(seq_1: str, seq_2: str):
 
 
 def strand_alignment_no_tb_mismatch(base_strand: DNA, incumbent: DNA, trigger: DNA):
-
     bstrand = base_strand.seq
     b_base = base_strand.base_count
 
@@ -134,11 +133,8 @@ def strand_alignment(
         )
 
     else:
-        (
-            mismatch_count,
-            mismatch_loc,
-            ob,
-            tb,
-        ) = strand_alignment_no_tb_mismatch(base, incumb, trig)
+        mismatch_count, mismatch_loc, ob, tb = strand_alignment_no_tb_mismatch(
+            base, incumb, trig
+        )
 
     return mismatch_count, mismatch_loc, ob, tb
