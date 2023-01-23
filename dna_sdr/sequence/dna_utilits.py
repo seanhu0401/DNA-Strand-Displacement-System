@@ -11,7 +11,7 @@ class DNA:
     base_count: int = field(init=False)
 
     def __post_init__(self):
-        # *Check if the input sequence is DNA
+        # Check if the input sequence is DNA
         if bool(re.match("^[atgc ATGC]+$", self.seq)):
             self.seq = self.seq.replace(" ", "").lower()
             self.base_count = len(self.seq)
@@ -24,6 +24,7 @@ class DNA:
 
     def reverse_seq(self):
         self.reverse = self.seq[::-1]
+        return self.reverse
 
     def reverse_complement(self):
         inverse = self.reverse
