@@ -75,4 +75,4 @@ if __name__ == "__main__":
         free_energy_dict, orient="index", columns=["dG (kcal/mol)"]
     )
     free_energy_df["Seqences (5' to 3')"] = seq_list
-    free_energy_df.to_pickle("./dna_sdr/trigger_sim/free_energy.pkl")
+    free_energy_df.to_pickle("./dna_sdr/pickles/free_energy.pkl")
