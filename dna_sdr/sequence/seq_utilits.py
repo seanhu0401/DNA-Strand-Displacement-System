@@ -1,5 +1,6 @@
 from dna_sdr.sequence.dna_utilits import DNA, trigger
 import pandas as pd
+import regex as re
 import os
 from more_itertools import consecutive_groups
 
@@ -155,7 +156,7 @@ def seq_info(
     master_list = list()
 
     for sname in xls.sheet_names:
-        dna_seq = pd.read_excel(fname, sheet_name=sname)
+        dna_seq_df = pd.read_excel(fname, sheet_name=sname)
         print(sname)
 
         if sname == "no_mtb":
@@ -164,12 +165,29 @@ def seq_info(
         elif sname == "mtb":
             toehold_bases = int(input("toehold base amount:") or "7")
 
-        for seq in dna_seq["Seqences (5' to 3')"]:
+        # for seq in dna_seq["Seqences (5' to 3')"]:
+        #     tb, ob, mismatch, mismatch_loc = strand_alignment(
+        #         base_seq, incumb, seq, tb=toehold_bases
+        #     )
+        #     name = name_generation(mismatch_loc, tb, ob)
+        #     dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc)
+        #     master_list.append(dna_trig)
+        loc_df = dna_seq_df.filter(regex="P\d Location", axis=1)
+        dna_seq = dna_seq_df["Seqences (5' to 3')"]
+        for count in range(len(dna_seq)):
+            location = loc_df.iloc[count].dropna()
+            for well in location:
+                plate = re.findall("P\d", location.index[0])[0]
+                plate_loc = "_".join([plate, well])
+            seq = dna_seq.iloc[count]
             tb, ob, mismatch, mismatch_loc = strand_alignment(
                 base_seq, incumb, seq, tb=toehold_bases
             )
             name = name_generation(mismatch_loc, tb, ob)
-            dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc)
+            try:
+                dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc, plate_loc)
+            except UnboundLocalError:
+                dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc)
             master_list.append(dna_trig)
 
     trig_df = pd.DataFrame([vars(trig) for trig in master_list])

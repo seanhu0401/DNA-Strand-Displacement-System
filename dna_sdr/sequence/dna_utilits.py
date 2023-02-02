@@ -42,6 +42,7 @@ class trigger(DNA):
     overhang: Optional[int] = None
     mismatch: Optional[int] = None
     mismatch_loc: Optional[list] = None
+    plate_loc: Optional[str] = None
 
     def __post_init__(self):
         super().__post_init__()
