@@ -1,12 +1,12 @@
 import regex as re
 from dataclasses import dataclass, field
+from typing import Optional
 
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
 
 
 @dataclass
 class DNA:
-    __slot__ = ["seq", "base_count"]
     seq: str
     base_count: int = field(init=False)
 
@@ -23,19 +23,25 @@ class DNA:
             )
 
     def reverse_seq(self):
-        self.reverse = self.seq[::-1]
-        return self.reverse
+        reverse = self.seq[::-1]
+        return reverse
 
     def reverse_complement(self):
-        inverse = self.reverse
+        reversed = self.reverse_seq()
         base_list = list()
-        for base in inverse:
+        for base in reversed:
             base_list.append(base_pairing[base])
         complment_seq = "".join(base_list)
         return complment_seq
 
 
-# TODO: Make a dataclass for triggers
 @dataclass
 class trigger(DNA):
-    toehold: int
+    name: str
+    toehold: Optional[int] = None
+    overhang: Optional[int] = None
+    mismatch: Optional[int] = None
+    mismatch_loc: Optional[list] = None
+
+    def __post_init__(self):
+        super().__post_init__()

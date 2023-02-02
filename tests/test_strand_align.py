@@ -1,5 +1,4 @@
 import pytest
-from dna_sdr.sequence.dna_utilits import DNA
 from dna_sdr.sequence.seq_utilits import strand_alignment
 
 
@@ -11,39 +10,41 @@ def default_tb_mismatch():
 # TODO: Simplify the test file
 
 no_tb_mismatch_test_lst = [
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (0, [], 5, 7)),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (1, [17], 5, 7)),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA", (2, [29, 30], 5, 7)),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA", (3, [28, 29, 30], 5, 7)),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA", (2, [17, 29], 5, 7)),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [])),
+    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (7, 5, 1, [17])),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA", (7, 5, 2, [29, 30])),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA", (7, 5, 3, [28, 29, 30])),
+    ("CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA", (7, 5, 2, [17, 29])),
     (
         "CA TAACA CA TCT CA CGTCC CA TCT CA CGTGC CA",
-        (6, [16, 17, 18, 28, 29, 30], 5, 7),
+        (7, 5, 6, [16, 17, 18, 28, 29, 30]),
     ),
-    ("CA CATCT CA CAATC CA TCT CA CCACC CA", (0, [], 0, 7)),
-    ("CATCT CA CAATC CA TCT CA CCACC CA", (0, [], 0, 5)),
+    ("CA CATCT CA CAATC CA TCT CA CCACC CA", (7, 0, 0, [])),
+    ("CATCT CA CAATC CA TCT CA CCACC CA", (5, 0, 0, [])),
     ("CA CATCT FA CAATC CA TCT CA CCACC CA", (ValueError)),
 ]
 
 tb_mismatch_test_lst = [
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (0, [], 5, 7)),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (1, [17], 5, 7)),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA", (2, [29, 30], 5, 7)),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA", (3, [28, 29, 30], 5, 7)),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA", (2, [17, 29], 5, 7)),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [])),
+    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (7, 5, 1, [17])),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA", (7, 5, 2, [29, 30])),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA", (7, 5, 3, [28, 29, 30])),
+    ("CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA", (7, 5, 2, [17, 29])),
     (
         "CA TAACA CA TCT CA CGTCC CA TCT CA CGTGC CA",
-        (6, [16, 17, 18, 28, 29, 30], 5, 7),
+        (7, 5, 6, [16, 17, 18, 28, 29, 30]),
     ),
-    ("CA CATCT CA CAA TC CATCT CA CCACC CA", (0, [], 0, 7)),
-    ("CA TAACA TG TCT CA CAATC CA TCTCA CCACC CA", (2, [8, 9], 5, 7)),
-    ("CA TAACA CT TCT CA CAGTC CA TCTCA CCACC CA", (2, [9, 17], 5, 7)),
+    ("CA CATCT CA CAATC CA TCT CA CCACC CA", (7, 0, 0, [])),
+    ("CA TAACA TG TCT CA CAATC CA TCTCA CCACC CA", (7, 5, 2, [8, 9])),
+    ("CA TAACA CT TCT CA CAGTC CA TCTCA CCACC CA", (7, 5, 2, [9, 17])),
     ("CA CATCT FA CAA TC CATCT CA CCACC CA", (ValueError)),
 ]
 
-# TODO: More test case for the not defualt list
 tb_mismatch_test_not_defualt_lst = [
-    ("CATCT CA CAA TC CATCT CA CCACC CA", (True, 5), (0, [], 0, 5))
+    ("CAACT CA CAA TC CATCT CA CCACC CA", (True, 5), (5, 0, 1, [3])),
+    ("CAATT CA CAA TC CATCT CA CCACC CA", (True, 5), (5, 0, 2, [3, 4])),
+    ("TC CAATT CA CAA TC CATCT CA CCACC CA", (True, 5), (5, 2, 2, [5, 6])),
+    ("CA CATCT FA CAA TC CATCT CA CCACC CA", (True, 5), (ValueError)),
 ]
 
 
