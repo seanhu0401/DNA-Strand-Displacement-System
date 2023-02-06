@@ -1,4 +1,5 @@
 import glob
+import os
 import pandas as pd
 import numpy as np
 import dna_sdr.data_process.list_generation as lst_gen
@@ -7,6 +8,8 @@ import dna_sdr.curve_fitting.curve_fitting as cf
 
 
 def Individual_CF_Parameter(file):
+    if not os.path.exists(file):
+        os.chdir("./dna_sdr/IO/Output/Pickles")
     df = pd.read_pickle(file)
     plate_number, group_dict = grouping.screen_grouping(file)
     time_df = lst_gen.time_list_generation(len(df))
@@ -55,6 +58,7 @@ def parameter_df_gen(params_list):
 
 def pt_gen(ext="pkl"):
     params_df_list = list()
+    os.chdir("./dna_sdr/IO/Output/Pickles")
     for f in glob.glob("*" + "Screen" + "*" + "normalized.{}".format(ext)):
         print(f)
         individual_parameter_list = Individual_CF_Parameter(f)

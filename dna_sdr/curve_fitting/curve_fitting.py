@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import warnings
 from scipy.optimize import curve_fit
-from models import one_phase_association
+from dna_sdr.curve_fitting.exp_models import one_phase_association
 
 warnings.filterwarnings("ignore")
 
