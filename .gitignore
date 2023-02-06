@@ -6,6 +6,7 @@ __pycache__
 .vscode
 .pytest_cache
 .DS_Store
+pickles
 *.xlsx
 *.egg-info
 *.pkl
