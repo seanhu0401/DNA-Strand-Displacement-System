@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import dna_sdr.visualization.sim_vis as vis
 
+end_plot = False
+
 
 def model_fitting(pt, parameter, type):
     func_list = list()
@@ -56,26 +58,33 @@ if __name__ == "__main__":
     plateau_param = model_fitting(out, "toehold", result_type[0])
     rate_param = model_fitting(out, "toehold", result_type[1])
 
-    fig = plt.figure(constrained_layout=True)
-    gs = GridSpec(2, 1, figure=fig)
-    x_inches, y_inches = vis.pt_to_inch(661, 397)
+    print(pd.read_pickle(trig_info_pickle))
 
-    ax1 = fig.add_subplot(gs[0])
-    vis.scatter_plot(out, result_type[0], ax=ax1)
-    for func in dir(model):
-        if func.endswith("function"):
-            vis.regression_plot(out, getattr(model, func), plateau_param[func][0], func)
+    if end_plot:
+        fig = plt.figure(constrained_layout=True)
+        gs = GridSpec(2, 1, figure=fig)
+        x_inches, y_inches = vis.pt_to_inch(661, 397)
 
-    ax1.legend()
-    ax1.set_ylabel("plateau")
+        ax1 = fig.add_subplot(gs[0])
+        vis.scatter_plot(out, result_type[0], ax=ax1)
+        for func in dir(model):
+            if func.endswith("function"):
+                vis.regression_plot(
+                    out, getattr(model, func), plateau_param[func][0], func
+                )
 
-    ax2 = fig.add_subplot(gs[1])
-    vis.scatter_plot(out, result_type[1], ax=ax2)
-    for func in dir(model):
-        if func.endswith("function"):
-            vis.regression_plot(out, getattr(model, func), rate_param[func][0], func)
+        ax1.legend()
+        ax1.set_ylabel("plateau")
 
-    ax2.set_xlabel("toehold length (bases)")
-    ax2.set_ylabel("rate (1/s)")
+        ax2 = fig.add_subplot(gs[1])
+        vis.scatter_plot(out, result_type[1], ax=ax2)
+        for func in dir(model):
+            if func.endswith("function"):
+                vis.regression_plot(
+                    out, getattr(model, func), rate_param[func][0], func
+                )
 
-    plt.show()
+        ax2.set_xlabel("toehold length (bases)")
+        ax2.set_ylabel("rate (1/s)")
+
+        plt.show()
