@@ -19,8 +19,8 @@ def seq_comp_plot(seq_1, seq_2, ax=None):
     if ax is None:
         ax = plt.gca()
 
+    comp_dict = seq_utilits.sequence_comparison(seq_1, seq_2)
     seq_tuple = (DNA(seq_1), DNA(seq_2))
-    comp_dict = seq_utilits.sequence_comparison(*seq_tuple)
     base_loc_lst = list(range(seq_tuple[0].base_count))
     y_temp = [1] * len(base_loc_lst)
     ax.plot(base_loc_lst, y_temp)
@@ -43,6 +43,6 @@ def seq_comp_plot(seq_1, seq_2, ax=None):
 
 if __name__ == "__main__":
     t1 = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
-    t2 = "CA TAACA CA TCT TT CAATC CA TCT CA CAGCC CA "
+    t2 = "CA TAACA CA TCT TT CAATC CA TCT CA CAGCC CA"
     ax = seq_comp_plot(t1, t2)
     plt.show()
