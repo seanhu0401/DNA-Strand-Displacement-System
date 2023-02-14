@@ -1,6 +1,6 @@
 import pandas as pd
 from nupack import *
-import dna_utilits as dna
+
 
 """ 
 1X PBS Solution Concentrations:
@@ -44,17 +44,19 @@ if __name__ == "__main__":
     trig_dict = dict(zip(Name_list, Trig_list))
 
     base = Strand(
-        dna.remove("TG GGTGG TG AGA TG GATTG TG AGA TG TG AGA CAT ACA GCG CCG ACC GTA"),
+        "TG GGTGG TG AGA TG GATTG TG AGA TG TG AGA CAT ACA GCG CCG ACC GTA".replace(
+            " ", ""
+        ),
         name="base",
     )
-    incumb = Strand(dna.remove("CA CAATC CA TCT CA CCACC CA"), name="incumb")
+    incumb = Strand(("CA CAATC CA TCT CA CCACC CA".replace(" ", "")), name="incumb")
 
     complex_list = list()
     free_energy_list = list()
     seq_list = list()
 
     for i in range(len(Trig_list)):
-        trig = Strand(dna.remove(Trig_list[i]), name=Name_list[i])
+        trig = Strand((Trig_list[i].replace(" ", "")), name=Name_list[i])
         trig_base_complex = "({}+base)".format(Name_list[i])
         t1 = Tube(
             strands={base: 5e-7, incumb: 5e-7, trig: 5e-7},
@@ -64,10 +66,10 @@ if __name__ == "__main__":
         complex_result = complex_analysis(complexes=t1, model=model1, compute=["pfunc"])
         complex_list.append(trig_base_complex)
         free_energy_list.append(complex_result[trig_base_complex].free_energy)
-        seq_list.append(dna.remove(Trig_list[i]))
+        seq_list.append((Trig_list[i].replace(" ", "")))
 
     complex_list.append("(incumb+base)")
-    seq_list.append(dna.remove("CA CAATC CA TCT CA CCACC CA"))
+    seq_list.append(("CA CAATC CA TCT CA CCACC CA".replace(" ", "")))
 
     free_energy_list.append(complex_result["(incumb+base)"].free_energy)
     free_energy_dict = dict(zip(complex_list, free_energy_list))
