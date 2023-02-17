@@ -4,7 +4,7 @@ import matplotlib.pylab as pylab
 params = {
     "axes.labelsize": 20,
     "axes.spines.top": False,
-    "axes.spines.right": False,
+    "axes.spines.right": True,
     "errorbar.capsize": 5,
     "xtick.labelsize": 18,
     "ytick.labelsize": 18,
@@ -18,7 +18,7 @@ def pt_to_inch(x_pt, y_pt):
     return x_inches, y_inches
 
 
-def scatter_plot(release_df, type, ax=None):
+def scatter_plot(release_df, type, label=None, ax=None):
     if ax is None:
         ax = plt.gca()
 
@@ -27,7 +27,7 @@ def scatter_plot(release_df, type, ax=None):
     mean = plateau.filter(regex=("mean")).squeeze()
     std = plateau.filter(regex=("std")).squeeze()
 
-    ax.scatter(x_axis, mean, s=50)
+    ax.scatter(x_axis, mean, label=label, s=50)
     ax.errorbar(x_axis, mean, std, ls="none", elinewidth=2)
 
     return ax
