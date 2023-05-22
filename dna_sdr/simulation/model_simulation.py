@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import dna_sdr.visualization.sim_vis as vis
 
-end_plot = True
+end_plot = False
 
 
 def model_fitting(pt, parameter, type):

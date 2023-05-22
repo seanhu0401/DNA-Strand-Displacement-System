@@ -43,3 +43,6 @@ def regression_plot(release_df, model, params, label, ax=None):
     ax.plot(x_axis, fitted, label=label)
 
     return ax
+
+
+# TODO: Add graphing function that incorpoates scatter and regression plot into one plot
