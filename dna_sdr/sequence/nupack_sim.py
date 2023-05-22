@@ -54,6 +54,7 @@ if __name__ == "__main__":
     complex_list = list()
     free_energy_list = list()
     seq_list = list()
+    conc_list = list()
 
     for i in range(len(Trig_list)):
         trig = Strand((Trig_list[i].replace(" ", "")), name=Name_list[i])
@@ -67,6 +68,14 @@ if __name__ == "__main__":
         complex_list.append(trig_base_complex)
         free_energy_list.append(complex_result[trig_base_complex].free_energy)
         seq_list.append((Trig_list[i].replace(" ", "")))
+        complex_conc = complex_concentrations(tube=t1, data=complex_result)
+        for complex, conc in complex_conc["t1"].complex_concentrations.items():
+            if complex.name == trig_base_complex:
+                conc_list.append(conc * 10**9)
+
+    conc_dict = dict(zip(complex_list, conc_list))
+    conc_df = pd.DataFrame.from_dict(conc_dict, orient="index", columns=["Conc (nM)"])
+    conc_df.to_pickle("./dna_sdr/pickles/concentration.pkl")
 
     complex_list.append("(incumb+base)")
     seq_list.append(("CA CAATC CA TCT CA CCACC CA".replace(" ", "")))
