@@ -37,6 +37,8 @@ tb_mismatch_test_lst = [
     ("CA CATCT CA CAATC CA TCT CA CCACC CA", (7, 0, 0, [])),
     ("CA TAACA TG TCT CA CAATC CA TCTCA CCACC CA", (7, 5, 2, [8, 9])),
     ("CA TAACA CT TCT CA CAGTC CA TCTCA CCACC CA", (7, 5, 2, [9, 17])),
+    ("CA TAAAA CA TCT CA CAATC GA TCT CA CCACC CA", (7, 5, 2, [6, 20])),
+    ("CA TAACT TG TCT CA CGTCC CA TCT CA CCACC CA", (7, 5, 6, [7, 8, 9, 16, 17, 18])),
     ("CA CATCT FA CAA TC CATCT CA CCACC CA", (ValueError)),
 ]
 

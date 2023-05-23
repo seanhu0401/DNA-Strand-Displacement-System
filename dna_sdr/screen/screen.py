@@ -96,7 +96,11 @@ if __name__ == "__main__":
         # export the combined file for storage + quick access
         norm_combined_data.to_pickle(sum_data_path)
 
-        # Move the processed data to the processed folder in specific folder corresponding to the test + conditions - if the folder does not exist, create the folder and move the file there, otherwise, move the file to the corresponsing folder
+        """
+        Move the processed data to the processed folder in specific folder corresponding to the test + conditions
+        if the folder does not exist, create the folder and move the file there, otherwise, move the file to the corresponsing folder
+        """
+
         if not os.path.exists(processed_path):
             os.mkdir(processed_path)
         else:

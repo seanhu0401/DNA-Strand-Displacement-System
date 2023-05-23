@@ -1,4 +1,5 @@
 import regex as re
+import os
 import pandas as pd
 
 
@@ -72,7 +73,11 @@ def group_generation(df, con_tube_number):
 
 
 def screen_grouping(fname):
+    if not os.path.exists(fname):
+        os.chdir("./dna_sdr/IO/Output/Pickles")
+
     df = pd.read_pickle(fname)
+
     fname_split = fname.split(".")[0].split("_")
     plate_num = fname_split[3]
 

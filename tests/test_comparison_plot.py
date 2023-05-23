@@ -1,2 +1,0 @@
-import pytest
-from dna_sdr.sequence.comparison_plot import mismatched_maker_gen
