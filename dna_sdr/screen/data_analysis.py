@@ -7,6 +7,7 @@ import dna_sdr.data_process.group as grouping
 import dna_sdr.curve_fitting.curve_fitting as cf
 
 # TODO: Change the file directory for better os paths
+# TODO: Add analysis for experimental vs nupack simulation
 
 
 def Individual_CF_Parameter(file):
@@ -70,6 +71,15 @@ def pt_gen(ext="pkl"):
     parameters_df = pd.concat(params_df_list)
 
     T1_df = parameters_df.loc[parameters_df["Trigger type"] == "T1"]
+
+    print(
+        pd.pivot_table(
+            data=T1_df,
+            index=["Trigger type"],
+            values=["plateau", "rate"],
+            aggfunc=[np.mean, np.std, "count"],
+        )
+    )
 
     T1_pt = pd.pivot_table(
         data=T1_df,
