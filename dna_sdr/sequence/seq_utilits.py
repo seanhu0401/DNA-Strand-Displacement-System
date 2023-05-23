@@ -49,6 +49,10 @@ def sequence_comparison(seq_1: str, seq_2: str):
     return seq_comp_dict
 
 
+# TODO: Update the strand alignment function to include the type of mismatch
+# TODO: Modify the strand alignment function to increase the readability
+
+
 def strand_alignment(
     base_strand: str, incumbent: str, trigger: str, tb_mismatch=False, tb=7
 ):
@@ -70,6 +74,7 @@ def strand_alignment(
     counter = mismatch = 0
     base_count = b_incumb + tb
     mismatch_loc = list()
+    mismatch_type = list()
 
     if tb_mismatch:
         for base in reverse_trig:
@@ -101,6 +106,7 @@ def strand_alignment(
             elif base != base_at_loc and b_trig - counter > tb_ob:
                 base_loc_5 = b_trig - counter
                 mismatch_loc.append(base_loc_5)
+                mismatch_type.append("{}-{}".format(base, base_at_loc))
                 mismatch += 1
 
             elif (
@@ -123,7 +129,7 @@ def strand_alignment(
 
     mismatch_loc.sort()
 
-    return tb, ob, mismatch, mismatch_loc
+    return tb, ob, mismatch, mismatch_loc, mismatch_type
 
 
 def name_generation(mismatch, toehold_b, overhang_b):

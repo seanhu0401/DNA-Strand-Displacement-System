@@ -7,20 +7,30 @@ def default_tb_mismatch():
     return (True, 7)
 
 
+# TODO: Update the test case
 # TODO: Simplify the test file
 
 no_tb_mismatch_test_lst = [
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [])),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (7, 5, 1, [17])),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA", (7, 5, 2, [29, 30])),
-    ("CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA", (7, 5, 3, [28, 29, 30])),
-    ("CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA", (7, 5, 2, [17, 29])),
+    ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [], [])),
+    ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (7, 5, 1, [17], ["a-t"])),
+    (
+        "CA TAACA CA TCT CA CAATC CA TCT CA CCGGC CA",
+        (7, 5, 2, [29, 30], ["a-g", "c-g"]),
+    ),
+    (
+        "CA TAACA CA TCT CA CAATC CA TCT CA CAGGC CA",
+        (7, 5, 3, [28, 29, 30], ["c-a", "a-g", "c-g"]),
+    ),
+    (
+        "CA TAACA CA TCT CA CATTC CA TCT CA CCTCC CA",
+        (7, 5, 2, [17, 29], ["a-t", "a-t"]),
+    ),
     (
         "CA TAACA CA TCT CA CGTCC CA TCT CA CGTGC CA",
         (7, 5, 6, [16, 17, 18, 28, 29, 30]),
     ),
-    ("CA CATCT CA CAATC CA TCT CA CCACC CA", (7, 0, 0, [])),
-    ("CATCT CA CAATC CA TCT CA CCACC CA", (5, 0, 0, [])),
+    ("CA CATCT CA CAATC CA TCT CA CCACC CA", (7, 0, 0, [], [])),
+    ("CATCT CA CAATC CA TCT CA CCACC CA", (5, 0, 0, [], [])),
     ("CA CATCT FA CAATC CA TCT CA CCACC CA", (ValueError)),
 ]
 
