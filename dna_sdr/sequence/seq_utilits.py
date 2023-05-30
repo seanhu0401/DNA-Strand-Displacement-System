@@ -110,20 +110,21 @@ def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
     return new_tb, new_ob, mismatch, mismatch_loc, mismatch_type
 
 
-def name_generation(mismatch, toehold_b, overhang_b):
+def name_generation(mismatch, toehold_b, overhang_b, type_mismatch):
     mismatch_groups = list(find_range(mismatch))
 
     base_name = f"{toehold_b}tb_5'{overhang_b}ob"
 
     full_mismatch_name = str()
 
-    for group in mismatch_groups:
+    for loc in range(len(mismatch_groups)):
+        group = mismatch_groups[loc]
         try:
             base_number = group[-1] - group[0] + 1
-            mismatch_name = f"_{group[0]}_{base_number}mb_"
+            mismatch_name = f"_{group[0]}_{base_number}mb_{type_mismatch[loc]}"
         except TypeError:
             base_number = 1
-            mismatch_name = f"_{group}_{base_number}mb"
+            mismatch_name = f"_{group}_{base_number}mb_{type_mismatch[loc]}"
         full_mismatch_name = full_mismatch_name + mismatch_name
 
     return base_name + full_mismatch_name
@@ -143,8 +144,8 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
                 plate = re.findall("P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
-            tb, ob, mismatch, mismatch_loc = trig_aligment(trig1, seq)
-            name = name_generation(mismatch_loc, tb, ob)
+            tb, ob, mismatch, mismatch_loc, mismatch_type = trig_aligment(trig1, seq)
+            name = name_generation(mismatch_loc, tb, ob, mismatch_type)
             try:
                 dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc, plate_loc)
             except UnboundLocalError:
@@ -157,17 +158,14 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
 
 
 if __name__ == "__main__":
-    # fname = "./dna_sdr/DNA_Strands.xlsx"
-    # pickle_name = "./dna_sdr/pickles/trig_info.pkl"
-    # df = seq_info(fname)
-    # if os.path.exists(pickle_name):
-    #     trig_df = pd.read_pickle(pickle_name)
-    #     if df.equals(trig_df):
-    #         print("Same dataframe - no new file")
-    #     else:
-    #         df.to_pickle(pickle_name)
-    # else:
-    #     df.to_pickle(pickle_name)
-    trig = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
-    mod = "CA TAAAA CA TCT CT CAATC CA TCT CA CCACC CA"
-    print(trig_aligment(trig, mod))
+    fname = "./dna_sdr/DNA_Strands.xlsx"
+    pickle_name = "./dna_sdr/pickles/trig_info.pkl"
+    df = seq_info(fname)
+    if os.path.exists(pickle_name):
+        trig_df = pd.read_pickle(pickle_name)
+        if df.equals(trig_df):
+            print("Same dataframe - no new file")
+        else:
+            df.to_pickle(pickle_name)
+    else:
+        df.to_pickle(pickle_name)
