@@ -49,123 +49,93 @@ def sequence_comparison(seq_1: str, seq_2: str):
     return seq_comp_dict
 
 
-def strand_alignment(
-    base_strand: str, incumbent: str, trigger: str, tb_mismatch=False, tb=7
-):
+def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
+    """
+    trigger1 is the complementory trigger for the system
+    trigger2 is the modified trigger for the system
+    input toehold and overhang bases if the inital trigger does not have
+    7 toehold bases and 5 overhang bases.
+    """
     try:
-        base_strand = DNA(base_strand)
-        incumb = DNA(incumbent)
-        trig = DNA(trigger)
+        trig1 = DNA(trigger1)
+        trig2 = DNA(trigger2)
     except ValueError:
         raise TypeError("Not all sequence given is DNA sequences")
 
-    bstrand = base_strand.seq
-    b_base = base_strand.base_count
-
-    b_incumb = incumb.base_count
-
-    reverse_trig = trig.reverse_complement()
-    b_trig = trig.base_count
-
-    counter = mismatch = 0
-    base_count = b_incumb + tb
+    counter = tb_mismatch = ob_mismatch = mismatch = 0
     mismatch_loc = list()
+    mismatch_type = list()
 
-    if tb_mismatch:
-        for base in reverse_trig:
-            base_at_loc = bstrand[counter]
-
-            if base == base_at_loc and counter + 1 <= b_base:
-                pass
-
-            elif base != base_at_loc and counter + 1 <= base_count:
-                base_loc_5 = b_trig - counter
-                mismatch_loc.append(base_loc_5)
-                mismatch += 1
-
-            counter += 1
-
-        ob = b_trig - base_count
-        mismatch_loc.sort()
-
+    base_difference = abs(trig1.base_count - trig2.base_count)
+    if tb == 7 and ob == 5:
+        if base_difference < ob and base_difference != 0:
+            new_ob = ob - base_difference
+        elif (base_difference >= ob) and (base_difference <= (tb + ob)):
+            new_tb = tb + ob - base_difference
+            new_ob = 0
+        elif base_difference == 0:
+            new_tb = tb
+            new_ob = ob
+        elif base_difference > (tb + ob):
+            raise ValueError(
+                "Missing toehold region and overhang - please check input sequence"
+            )
     else:
-        last_match_loc = 0
-        tb_ob = b_trig - b_incumb  # number of bases for toehold + overhang
+        new_tb = tb
+        new_ob = ob
 
-        for base in reverse_trig:
-            base_at_loc = bstrand[counter]
+    for base in trig2.reverse_seq():
+        base_at_loc = trig1.reverse_seq()[counter]
 
-            if base == base_at_loc and counter <= b_base:
-                pass
+        if base == base_at_loc and counter < (trig2.base_count - new_ob):
+            pass
+        elif base != base_at_loc and counter < (trig2.base_count - new_ob):
+            location = trig1.base_count - counter
+            mismatch_loc.append(location)
+            mismatch_type.append("{}-{}".format(base_at_loc, base))
+            mismatch += 1
+            if location <= (new_tb + new_ob):
+                if location > new_ob:
+                    tb_mismatch += 1
+                else:
+                    ob_mismatch += 1
 
-            elif base != base_at_loc and b_trig - counter > tb_ob:
-                base_loc_5 = b_trig - counter
-                mismatch_loc.append(base_loc_5)
-                mismatch += 1
+        counter += 1
 
-            elif (
-                base != base_at_loc
-                and b_trig - counter <= tb_ob
-                and counter > last_match_loc
-                and last_match_loc < b_trig - counter
-            ):
-                last_match_loc = counter
-
-            counter += 1
-
-        if last_match_loc != 0:
-            toehold = last_match_loc - b_incumb
-            ob = tb_ob - toehold
-
-        else:
-            tb = tb_ob
-            ob = 0
-
+    new_tb = new_tb - tb_mismatch
+    new_ob = new_ob - ob_mismatch
     mismatch_loc.sort()
+    mismatch_type.reverse()
 
-    return tb, ob, mismatch, mismatch_loc
+    return new_tb, new_ob, mismatch, mismatch_loc, mismatch_type
 
 
-def name_generation(mismatch, toehold_b, overhang_b):
+def name_generation(mismatch, toehold_b, overhang_b, type_mismatch):
     mismatch_groups = list(find_range(mismatch))
-    # print(mismatch_groups)
 
     base_name = f"{toehold_b}tb_5'{overhang_b}ob"
 
     full_mismatch_name = str()
 
-    for group in mismatch_groups:
+    for loc in range(len(mismatch_groups)):
+        group = mismatch_groups[loc]
         try:
             base_number = group[-1] - group[0] + 1
-            mismatch_name = f"_{group[0]}_{base_number}mb"
+            mismatch_name = f"_{group[0]}_{base_number}mb_{type_mismatch[loc]}"
         except TypeError:
             base_number = 1
-            mismatch_name = f"_{group}_{base_number}mb"
+            mismatch_name = f"_{group}_{base_number}mb_{type_mismatch[loc]}"
         full_mismatch_name = full_mismatch_name + mismatch_name
 
     return base_name + full_mismatch_name
 
 
-def seq_info(
-    fname,
-    incumb="CA CAATC CA TCT CA CCACC CA",
-    base_seq="TG GGTGG TG AGA TG GATTG TG AGA TG TG AGA CAT ACA GCG CCG ACC GTA",
-):
+def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
     xls = pd.ExcelFile(fname)
     master_list = list()
 
     for sname in xls.sheet_names:
-        tb_mismatched = False
         dna_seq_df = pd.read_excel(fname, sheet_name=sname)
-        print(sname)
-
-        if sname == "no_mtb":
-            toehold_bases = 7
-
-        elif sname == "mtb":
-            toehold_bases = int(input("toehold base amount:") or "7")
-            tb_mismatched = True
-
         loc_df = dna_seq_df.filter(regex="P\d Location", axis=1)
         dna_seq = dna_seq_df["Seqences (5' to 3')"]
         for count in range(len(dna_seq)):
@@ -174,10 +144,8 @@ def seq_info(
                 plate = re.findall("P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
-            tb, ob, mismatch, mismatch_loc = strand_alignment(
-                base_seq, incumb, seq, tb_mismatched, tb=toehold_bases
-            )
-            name = name_generation(mismatch_loc, tb, ob)
+            tb, ob, mismatch, mismatch_loc, mismatch_type = trig_aligment(trig1, seq)
+            name = name_generation(mismatch_loc, tb, ob, mismatch_type)
             try:
                 dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc, plate_loc)
             except UnboundLocalError:

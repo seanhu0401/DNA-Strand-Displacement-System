@@ -21,6 +21,13 @@ class DNA:
                     self.seq
                 )
             )
+        
+    def complement(self):
+        base_list = list()
+        for base in self:
+            base_list.appen(base_pairing[base])
+        complment_seq = ''.join(base_list)
+        return complment_seq
 
     def reverse_seq(self):
         reverse = self.seq[::-1]
@@ -28,11 +35,8 @@ class DNA:
 
     def reverse_complement(self):
         reversed = self.reverse_seq()
-        base_list = list()
-        for base in reversed:
-            base_list.append(base_pairing[base])
-        complment_seq = "".join(base_list)
-        return complment_seq
+        reverse_complment_seq = self.complement(reversed)
+        return reverse_complment_seq
 
 
 @dataclass
