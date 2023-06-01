@@ -21,12 +21,12 @@ class DNA:
                     self.seq
                 )
             )
-        
+
     def complement(self):
         base_list = list()
         for base in self:
             base_list.appen(base_pairing[base])
-        complment_seq = ''.join(base_list)
+        complment_seq = "".join(base_list)
         return complment_seq
 
     def reverse_seq(self):
@@ -46,6 +46,7 @@ class trigger(DNA):
     overhang: Optional[int] = None
     mismatch: Optional[int] = None
     mismatch_loc: Optional[list] = None
+    mismatch_type: Optional[list] = None
     plate_loc: Optional[str] = None
 
     def __post_init__(self):

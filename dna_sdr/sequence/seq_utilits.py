@@ -110,7 +110,7 @@ def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
     return new_tb, new_ob, mismatch, mismatch_loc, mismatch_type
 
 
-def name_generation(mismatch, toehold_b, overhang_b, type_mismatch):
+def name_generation(toehold_b, overhang_b, mismatch, type_mismatch):
     mismatch_groups = list(find_range(mismatch))
 
     base_name = f"{toehold_b}tb_5'{overhang_b}ob"
@@ -119,12 +119,15 @@ def name_generation(mismatch, toehold_b, overhang_b, type_mismatch):
 
     for loc in range(len(mismatch_groups)):
         group = mismatch_groups[loc]
-        try:
-            base_number = group[-1] - group[0] + 1
-            mismatch_name = f"_{group[0]}_{base_number}mb_{type_mismatch[loc]}"
-        except TypeError:
+        if isinstance(group, int):
             base_number = 1
             mismatch_name = f"_{group}_{base_number}mb_{type_mismatch[loc]}"
+        else:
+            base_number = group[-1] - group[0] + 1
+            type_group = tuple(type_mismatch[:base_number])
+            mismatch_name = f"_{group[0]}_{base_number}mb_{type_group}"
+            del type_mismatch[:base_number]
+
         full_mismatch_name = full_mismatch_name + mismatch_name
 
     return base_name + full_mismatch_name
@@ -144,12 +147,12 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
                 plate = re.findall("P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
-            tb, ob, mismatch, mismatch_loc, mismatch_type = trig_aligment(trig1, seq)
-            name = name_generation(mismatch_loc, tb, ob, mismatch_type)
+            info = trig_aligment(trig1, seq)
+            name = name_generation(*info[:3], info[-1])
             try:
-                dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc, plate_loc)
+                dna_trig = trigger(seq, name, *info, plate_loc)
             except UnboundLocalError:
-                dna_trig = trigger(seq, name, tb, ob, mismatch, mismatch_loc)
+                dna_trig = trigger(seq, name, *info)
             master_list.append(dna_trig)
 
     trig_df = pd.DataFrame([vars(trig) for trig in master_list])
