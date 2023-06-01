@@ -1,10 +1,6 @@
 import pytest
 from dna_sdr.sequence.seq_utilits import trig_aligment
 
-
-# TODO: Update the test case
-# TODO: Simplify the test file
-
 test_lst = [
     ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [], [])),
     ("CA TAACA CA TCT CA CATTC CA TCT CA CCACC CA", (7, 5, 1, [17], ["a-t"])),
