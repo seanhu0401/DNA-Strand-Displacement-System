@@ -44,8 +44,5 @@ if __name__ == "__main__":
     plateau_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
     trig_info_plateau_df = pd.merge(trig_info_df, plateau_df, on="plate_loc")
 
-    # print(trig_info_plateau_df)
-    # print(conc_df)
-
-    for name in trig_info_plateau_df["name"]:
-        print(name)
+    print(trig_info_plateau_df)
+    print(conc_df)
