@@ -148,7 +148,7 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
             info = trig_aligment(trig1, seq)
-            name = name_generation(*info[:3], info[-1])
+            name = name_generation(*info[:2], *info[3:])
             try:
                 dna_trig = trigger(seq, name, *info, plate_loc)
             except UnboundLocalError:
