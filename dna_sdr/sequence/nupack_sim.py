@@ -15,10 +15,14 @@ from nupack import *
     - MgCl2: 12 mM
 """
 
+"""
+The sum of the concentrations of (monovalent) sodium, potassium, and ammonium ions, 
+[Na+]+[K+]+[NH+4], is specified in units of molar using the keyword sodium.
+"""
 
 if __name__ == "__main__":
     folding_buffer_mg = 0.012  # [M] 1X folding buffer
-    pbs_na = (137 + 10 * 2) / 1000  # [M] 1X PBS
+    pbs = (137 + 10 * 2 + 1.8 + 2.7) / 1000  # [M] 1X PBS
     final_mg_concentration = folding_buffer_mg / 10  # 10x dilution in qPCR
 
     # Salt is in [M]
@@ -26,20 +30,9 @@ if __name__ == "__main__":
         material="dna",
         ensemble="stacking",
         celsius=40,
-        sodium=pbs_na,
+        sodium=pbs,
         magnesium=final_mg_concentration,
     )
-
-    # trig_lst = list()
-    # name_lst = list()
-    # fname = "./dna_sdr/DNA_Strands.xlsx"
-    # xls = pd.ExcelFile(fname)
-    # for sname in xls.sheet_names:
-    #     dna_seq = pd.read_excel(fname, sheet_name=sname)
-    #     for seq in dna_seq["Seqences (5' to 3')"]:
-    #         Trig_list.append(seq)
-    #     for name in dna_seq["Name"]:
-    #         Name_list.append(name)
 
     fname = "./dna_sdr/pickles/trig_info.pkl"
     trig_info_df = pd.read_pickle(fname)

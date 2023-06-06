@@ -1,5 +1,3 @@
-import glob
-import os
 import pandas as pd
 import numpy as np
 
@@ -44,5 +42,20 @@ if __name__ == "__main__":
     plateau_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
     trig_info_plateau_df = pd.merge(trig_info_df, plateau_df, on="plate_loc")
 
-    print(trig_info_plateau_df)
-    print(conc_df)
+    name_lst = list()
+    for index in conc_df.index:
+        name = index.split("+")[0][1:]
+        name_lst.append(name)
+
+    conc_df["name"] = name_lst
+    conc_df.reset_index(inplace=True)
+    merged_df = pd.merge(trig_info_plateau_df, conc_df, on="name")
+
+    result_df = merged_df.loc[:, ["plateau", "Conc (nM)"]]
+    result_df.rename(
+        columns={"plateau": "experimental", "Conc (nM)": "Nupack"}, inplace=True
+    )
+    result_df["percent diff"] = (
+        (result_df["experimental"] - result_df["Nupack"]) / result_df["Nupack"] * 100
+    )
+    # print(result_df)
