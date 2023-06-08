@@ -118,17 +118,18 @@ def residual(paras, t, data, mode, fn):
     return (IQ_model - data).ravel()
 
 
+# TODO: Update the graphs to show the model for trig+output in one subfigure + model output with exp output in another subfigure
 if __name__ == "__main__":
     pickle = "dna_sdr/IO/Output/Pickles/4WJ_HEX_Screen_P0_A01_A04_summerized.pkl"
     df = pd.read_pickle(pickle)
 
     # measured data
     t_measured = df["time (min)"]
-    release_measured = df["A2_mean"] * 500
+    release_measured = df["A3_mean"] * 500
     y0 = np.zeros(5)
     y0[0:2] = 500
     k1 = 1e-6
-    k1r = 1e-8
+    k1r = 1e-5
     k2 = 1e-0
     k = [k1, k1r, k2]
 
@@ -138,8 +139,8 @@ if __name__ == "__main__":
     k_bound = [k1_bound, k1r_bound, k2_bound]
 
     # mode = "simple"
-    # mode = "simple-complex"
-    mode = "complex"
+    mode = "simple-complex"
+    # mode = "complex"
 
     if mode == "simple":
         # initial conditions
@@ -166,8 +167,16 @@ if __name__ == "__main__":
             release_measured,
             marker="o",
             color="b",
-            label="measured data",
+            label="exp",
             s=75,
+        )
+        plt.plot(
+            t_measured,
+            data_fitted[0],
+            "-",
+            linewidth=2,
+            color="black",
+            label="I",
         )
         plt.plot(
             t_measured,
@@ -175,11 +184,11 @@ if __name__ == "__main__":
             "-",
             linewidth=2,
             color="red",
-            label="fitted data",
+            label="QT",
         )
         plt.legend()
         plt.xlim([0, max(t_measured)])
-        plt.ylim([0, 1.1 * max(data_fitted[2])])
+        plt.ylim([0, 1.1 * 500])
 
         # display fitted statistics
         report_fit(result)
@@ -224,15 +233,31 @@ if __name__ == "__main__":
         )
         plt.plot(
             t_measured,
+            data_fitted[0],
+            "-",
+            linewidth=2,
+            color="black",
+            label="I",
+        )
+        plt.plot(
+            t_measured,
             data_fitted[2],
             "-",
             linewidth=2,
             color="red",
-            label="fitted data",
+            label="QT",
+        )
+        plt.plot(
+            t_measured,
+            data_fitted[4],
+            "-",
+            linewidth=2,
+            color="green",
+            label="IQT",
         )
         plt.legend()
         plt.xlim([0, max(t_measured)])
-        plt.ylim([0, 1.1 * max(data_fitted[2])])
+        plt.ylim([0, 1.1 * 500])
 
         # display fitted statistics
         report_fit(result)
@@ -273,6 +298,14 @@ if __name__ == "__main__":
         )
         plt.plot(
             t_measured,
+            data_fitted[0],
+            "-",
+            linewidth=2,
+            color="black",
+            label="QT",
+        )
+        plt.plot(
+            t_measured,
             data_fitted[2],
             "-",
             linewidth=2,
@@ -284,12 +317,12 @@ if __name__ == "__main__":
             data_fitted[4],
             "-",
             linewidth=2,
-            color="red",
+            color="green",
             label="IQT",
         )
         plt.legend()
         plt.xlim([0, max(t_measured)])
-        plt.ylim([0, 1.1 * max(data_fitted[2])])
+        plt.ylim([0, 1.1 * 500])
 
         # display fitted statistics
         report_fit(result)
