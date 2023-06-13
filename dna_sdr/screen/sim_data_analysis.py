@@ -21,13 +21,24 @@ def name_conversion(trig_df, info_df):
 if __name__ == "__main__":
     t1_pickle = "./dna_sdr/pickles/T1_pt.pkl"
     trig_pickle = "./dna_sdr/pickles/trig_pt.pkl"
+    trig_cf_pickle = "./dna_sdr/pickles/trig.pkl"
     conc_pickle = "./dna_sdr/pickles/concentration.pkl"
     trig_info_pickle = "./dna_sdr/pickles/trig_info.pkl"
 
     t1_df = pd.read_pickle(t1_pickle)
     trig_df = pd.read_pickle(trig_pickle)
+    trig_cf_df = pd.read_pickle(trig_cf_pickle)
     trig_info_df = pd.read_pickle(trig_info_pickle)
     conc_df = pd.read_pickle(conc_pickle)
+    name_convert_dict = name_conversion(trig_df, trig_info_df)
+
+    trig_cf_df["plate_loc"] = (
+        trig_cf_df["Plate Number"] + "_" + trig_cf_df["Trigger type"]
+    )
+    trig_cf_df.drop(["Plate Number", "Trigger type"], inplace=True, axis=1)
+
+    trig_info_plateau_df = pd.merge(trig_info_df, trig_cf_df, on="plate_loc")
+    trig_info_plateau_df.rename({"plateau": "plateau_combined"}, inplace=True, axis=1)
 
     plateau_series = trig_df["mean"]["plateau"] * 500
     name_convert_dict = name_conversion(trig_df, trig_info_df)
@@ -40,7 +51,7 @@ if __name__ == "__main__":
     plateau_df = plateau_series.reset_index()
     plateau_df["plate_loc"] = plate_loc_lst
     plateau_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
-    trig_info_plateau_df = pd.merge(trig_info_df, plateau_df, on="plate_loc")
+    trig_two_plateau_df = pd.merge(trig_info_plateau_df, plateau_df, on="plate_loc")
 
     name_lst = list()
     for index in conc_df.index:
@@ -49,13 +60,15 @@ if __name__ == "__main__":
 
     conc_df["name"] = name_lst
     conc_df.reset_index(inplace=True)
-    merged_df = pd.merge(trig_info_plateau_df, conc_df, on="name")
+    merged_df = pd.merge(trig_two_plateau_df, conc_df, on="name")
+    print(merged_df)
+    merged_df.to_csv("merged_df.csv")
 
-    result_df = merged_df.loc[:, ["plateau", "Conc (nM)"]]
-    result_df.rename(
-        columns={"plateau": "experimental", "Conc (nM)": "Nupack"}, inplace=True
-    )
-    result_df["percent diff"] = (
-        (result_df["experimental"] - result_df["Nupack"]) / result_df["Nupack"] * 100
-    )
+    # result_df = merged_df.loc[:, ["plateau", "Conc (nM)"]]
+    # result_df.rename(
+    #     columns={"plateau": "experimental", "Conc (nM)": "Nupack"}, inplace=True
+    # )
+    # result_df["percent diff"] = (
+    #     (result_df["experimental"] - result_df["Nupack"]) / result_df["Nupack"] * 100
+    # )
     # print(result_df)
