@@ -74,9 +74,9 @@ def trig_param_df_gen():
         parameter_list = CF(f)
         df = pd.DataFrame(parameter_list)
         df_list.append(df)
-        parameter_df = pd.concat(df_list)
-        parameter_df = parameter_df.mask(parameter_df["r_sq"] <= 0.90).dropna()
 
+    parameter_df = pd.concat(df_list)
+    parameter_df = parameter_df.mask(parameter_df["r_sq"] <= 0.90).dropna()
     trig_param_df = parameter_df.loc[parameter_df["Trigger type"] != "T1"]
 
     return trig_param_df
@@ -85,13 +85,7 @@ def trig_param_df_gen():
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
     trig_df = trig_param_df_gen()
-    print(trig_df)
 
-    # f = "4WJ_HEX_Screen_P0_A01_A04_summerized.pkl"
-    # parameter_list = CF(f)
-    # df = pd.DataFrame(parameter_list)
-    # print(df)
-
-    # os.chdir("../../../..")
-    # trig_df.to_pickle("./dna_sdr/pickles/trig.pkl")
+    os.chdir("../../../..")
+    trig_df.to_pickle("./dna_sdr/pickles/trig.pkl")
     # trig_df.to_csv("./dna_sdr/trig-df.csv")
