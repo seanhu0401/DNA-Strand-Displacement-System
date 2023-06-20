@@ -10,7 +10,7 @@ def group_query(fname):
     group_lst = ["T1"]
 
     # If the samples are contiunes in the file,i.e., A01-A03 or A09-B03
-    if len(match) <= 2:
+    if len(match) == 2:
         row = (match[0][0], match[1][0])
         col = (int(match[0][1:]), int(match[1][1:]))
 
@@ -36,6 +36,9 @@ def group_query(fname):
     elif len(match) > 2:
         group_quant = len(match) + 1
         group_lst.extend(match)
+
+    elif len(match) < 2:
+        raise ValueError("Check test and file name - {}".format(fname))
 
     return group_quant, group_lst
 
@@ -70,21 +73,3 @@ def group_generation(df, con_tube_number):
                 presented_subgroups.append(j)
         presented_groups.append(presented_subgroups)
     return sample_group, presented_groups
-
-
-def screen_grouping(fname):
-    if not os.path.exists(fname):
-        os.chdir("./dna_sdr/IO/Output/Pickles")
-
-    df = pd.read_pickle(fname)
-
-    fname_split = fname.split(".")[0].split("_")
-    plate_num = fname_split[3]
-
-    group_quant, group_lst = group_query(fname)
-
-    control_tube = group_quant * 4 + 1
-    _, presented_group = group_generation(df, control_tube)
-    presented_group_dict = dict(zip(group_lst, presented_group))
-
-    return plate_num, presented_group_dict
