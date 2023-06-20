@@ -1,3 +1,5 @@
+import glob
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -118,7 +120,6 @@ def residual(paras, t, data, mode, fn):
     return (IQ_model - data).ravel()
 
 
-# TODO: Update the graphs to show the model for trig+output in one subfigure + model output with exp output in another subfigure
 if __name__ == "__main__":
     pickle = "dna_sdr/IO/Output/Pickles/4WJ_HEX_Screen_P0_A01_A04_summerized.pkl"
     df = pd.read_pickle(pickle)
@@ -138,8 +139,8 @@ if __name__ == "__main__":
     k2_bound = (10e-9, 10e1)
     k_bound = [k1_bound, k1r_bound, k2_bound]
 
-    # mode = "simple"
-    mode = "simple-complex"
+    mode = "simple"
+    # mode = "simple-complex"
     # mode = "complex"
 
     if mode == "simple":
@@ -192,10 +193,12 @@ if __name__ == "__main__":
 
         # display fitted statistics
         report_fit(result)
+        print(result.params["k1"].value)
+        print(result.params["k1"].stderr)
         r2 = 1 - result.residual.var() / np.var(release_measured)
         print("r^2 value is {}".format(r2))
 
-        plt.show()
+        # plt.show()
 
     elif mode == "simple-complex":
         # initial conditions
