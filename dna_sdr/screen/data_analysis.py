@@ -2,20 +2,45 @@ import glob
 import os
 import pandas as pd
 import numpy as np
-import dna_sdr.data_process.list_generation as lst_gen
-import dna_sdr.data_process.group as grouping
-import dna_sdr.curve_fitting.curve_fitting as cf
-
-# TODO: Change the file directory for better os paths
-# TODO: Add analysis for experimental vs nupack simulation
+from scipy.optimize import curve_fit
 
 
-def Individual_CF_Parameter(file):
+def one_phase_association(time, plateau, k):
+    return plateau * (1 - np.exp(-k * time))
+
+
+def general_cf_process(eq, x_df, y_df, stdev):
+    r_square = 0
+    popt = [0, 0]
+    perr = [0, 0]
+    try:
+        popt, pcov = curve_fit(
+            eq, x_df, y_df, sigma=stdev, absolute_sigma=True, p0=[500, 0.01]
+        )
+        residual = y_df - eq(np.array(x_df), *popt)
+        ss_res = np.sum(residual**2)
+        ss_tot = np.sum((y_df - np.mean(y_df)) ** 2)
+        r_square = 1 - (ss_res / ss_tot)
+        perr = np.sqrt(np.diag(pcov))
+
+    except RuntimeError:
+        pass
+
+    return (popt, r_square, perr)
+
+
+def CF(file):
     if not os.path.exists(file):
         os.chdir("./dna_sdr/IO/Output/Pickles")
+    print(file)
+
     df = pd.read_pickle(file)
-    plate_number, group_dict = grouping.screen_grouping(file)
-    time_df = lst_gen.time_list_generation(len(df))
+    plate_num = file.split("_")[3]
+    time = df["time (min)"]
+    mean_df = df.filter(regex="mean")
+    std_df = df.filter(regex="std")
+    conditions = [i.split("_")[0] for i in mean_df.columns]
+
     master_list = list()
     label_list = [
         "Plate Number",
@@ -23,99 +48,50 @@ def Individual_CF_Parameter(file):
         "plateau",
         "rate",
         "r_sq",
+        "plateau_error",
+        "rate_error",
     ]
 
-    for group in group_dict:
-        group_list = [plate_number, group]
+    for condition in conditions:
+        group_list = [plate_num, condition]
+        mean = mean_df.filter(regex=condition) * 500
+        std = std_df.filter(regex=condition) * 500
+        mean = mean.squeeze()
+        std = std.squeeze()
+        results = general_cf_process(one_phase_association, time, mean, std)
 
-        plateau_list, rate_const_list, r_square_list = (list() for i in range(3))
-        cond_group = df[group_dict[group]]
-        for trial in range(cond_group.shape[1]):
-            ind_trial = cond_group.iloc[:, trial]
-            parameter, r_square = cf.general_cf_process(
-                cf.one_phase_association, time_df, ind_trial
-            )
-            if parameter is not None:
-                plateau_list.append(parameter[0])
-                rate_const_list.append(parameter[1])
-                r_square_list.append(r_square)
-        group_list.append(plateau_list)
-        group_list.append(rate_const_list)
-        group_list.append(r_square_list)
+        group_list.extend([*results[0], results[1], *results[2]])
+
         param_group_dict = dict(zip(label_list, group_list))
         master_list.append(param_group_dict)
 
     return master_list
 
 
-def parameter_df_gen(params_list):
+def trig_param_df_gen():
     df_list = list()
-    for condition in range(len(params_list)):
-        ind_cond_df = pd.DataFrame.from_dict(params_list[condition])
-        df_list.append(ind_cond_df)
+    for f in glob.glob("*" + "Screen" + "*" + "summerized.pkl"):
+        parameter_list = CF(f)
+        df = pd.DataFrame(parameter_list)
+        df_list.append(df)
         parameter_df = pd.concat(df_list)
         parameter_df = parameter_df.mask(parameter_df["r_sq"] <= 0.90).dropna()
 
-    return parameter_df
+    trig_param_df = parameter_df.loc[parameter_df["Trigger type"] != "T1"]
 
-
-def pt_gen(ext="pkl"):
-    params_df_list = list()
-    os.chdir("./dna_sdr/IO/Output/Pickles")
-    for f in glob.glob("*" + "Screen" + "*" + "normalized.{}".format(ext)):
-        print(f)
-        individual_parameter_list = Individual_CF_Parameter(f)
-        params_df = parameter_df_gen(individual_parameter_list)
-        params_df_list.append(params_df)
-
-    parameters_df = pd.concat(params_df_list)
-
-    T1_df = parameters_df.loc[parameters_df["Trigger type"] == "T1"]
-
-    print(
-        pd.pivot_table(
-            data=T1_df,
-            index=["Trigger type"],
-            values=["plateau", "rate"],
-            aggfunc=[np.mean, np.std, "count"],
-        )
-    )
-
-    T1_pt = pd.pivot_table(
-        data=T1_df,
-        index=["Plate Number", "Trigger type"],
-        values=["plateau", "rate"],
-        aggfunc=[np.mean, np.std, "count"],
-    )
-
-    pt_output = pd.pivot_table(
-        data=parameters_df.loc[parameters_df["Trigger type"] != "T1"],
-        index=["Plate Number", "Trigger type"],
-        values=["plateau", "rate"],
-        aggfunc=[np.mean, np.std, "count"],
-    )
-
-    return T1_pt, pt_output
+    return trig_param_df
 
 
 if __name__ == "__main__":
-    t1_out, trig_out = pt_gen()
-    t1_pickle = "./dna_sdr/pickles/T1_pt.pkl"
-    trig_pickle = "./dna_sdr/pickles/trig_pt.pkl"
+    os.chdir("./dna_sdr/IO/Output/Pickles")
+    trig_df = trig_param_df_gen()
+    print(trig_df)
 
-    os.chdir("../../../..")
-    if os.path.exists(t1_pickle) and os.path.exists(trig_pickle):
-        t1_df = pd.read_pickle(t1_pickle)
-        trig_df = pd.read_pickle(trig_pickle)
-        if t1_out.equals(t1_df):
-            print("Same T1 dataframe - no new T1 file")
-        else:
-            t1_out.to_pickle(t1_pickle)
+    # f = "4WJ_HEX_Screen_P0_A01_A04_summerized.pkl"
+    # parameter_list = CF(f)
+    # df = pd.DataFrame(parameter_list)
+    # print(df)
 
-        if trig_out.equals(trig_df):
-            print("Same trigger dataframe - no new trigger file")
-        else:
-            trig_out.to_pickle(trig_pickle)
-    else:
-        t1_out.to_pickle(t1_pickle)
-        trig_out.to_pickle(trig_pickle)
+    # os.chdir("../../../..")
+    # trig_df.to_pickle("./dna_sdr/pickles/trig.pkl")
+    # trig_df.to_csv("./dna_sdr/trig-df.csv")
