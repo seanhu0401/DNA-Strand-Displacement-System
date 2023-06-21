@@ -1,6 +1,4 @@
 import regex as re
-import os
-import pandas as pd
 
 
 def group_query(fname):

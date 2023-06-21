@@ -1,7 +1,7 @@
 import glob
 import os
 import dna_sdr.data_process.list_generation as lst_gen
-import dna_sdr.data_process.combine_data as cd
+import dna_sdr.data_process.data_processing as dp
 import dna_sdr.data_process.group as grouping
 import pandas as pd
 import shutil
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         after normalization with the positive and negative control and generate a
         combined data dataframe for further analysis.
         """
-        combined_data_df = cd.data_combination(
+        combined_data_df = dp.data_combination(
             path[0], extension, groups, time_list_mins, path[1]
         )
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         export the dataframe into csv and/or pickle files for storage and quicker access
         in Python
         """
-        norm_data_df = cd.data_normalization(
+        norm_data_df = dp.data_normalization(
             combined_data_df, group_of_samples, paths[2]
         )
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         each condition and combined it all into one dataframe. Export the dataframe into 
         csv and/or pickle files for storage and quicker access in Python
         """
-        cd.data_combination(
+        dp.data_combination(
             norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
         )
 
