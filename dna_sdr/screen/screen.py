@@ -16,7 +16,7 @@ if __name__ == "__main__":
     file_list = []
 
     # Loop through the files from the input folder and find the matching files for processing
-    # Add the trigger type into a list and convert to a dict for manual selection
+    # Add the trigger type into a list and convert to a dict for selection
     fname_search = "4WJ_HEX_Screen" + "*.{}".format(extension)
     for f in glob.glob(fname_search):
         if f not in file_list:
@@ -33,81 +33,69 @@ if __name__ == "__main__":
         trig_type_input = int(input("Type of trigger:") or "1")
         trig_type_selected = trig_type_dict.get(trig_type_input)
 
-        # Save file path generation
-        (
-            fname,
-            combined_data_path,
-            norm_cdata_path,
-            sum_data_path,
-            processed_path,
-        ) = lst_gen.file_path_generation(test_type, trig_type_selected)
+        """
+        Save file path generation
+        path[0] = fname 
+        path[1] = combined_data_path
+        path[2] = norm_cdata_path
+        path[3] = sum_data_path
+        path[4] = processed_path
+        """
+        paths = lst_gen.file_path_generation(test_type, trig_type_selected)
 
-        groups, group_list = grouping.group_query(fname)
+        groups, group_list = grouping.group_query(paths[0])
         group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
         time_list_mins = lst_gen.time_list_generation(60)
 
-        # Combined the data together and check for conditions that are not accurate after normalization with the positive and negative control - generate a combined data dataframe for further analysis.
-        combined_data = cd.data_combination(
-            fname,
-            extension,
-            groups,
-            time_list_mins,
-            combined_data_path,
+        """
+        Combined the data together and check for conditions that are not accurate
+        after normalization with the positive and negative control and generate a
+        combined data dataframe for further analysis.
+        """
+        combined_data_df = cd.data_combination(
+            path[0], extension, groups, time_list_mins, path[1]
         )
 
         # export the combined file for storage + quick access
-        combined_data.to_pickle(combined_data_path)
+        combined_data_df.to_pickle(path[1])
 
-        # Generate the groups presented in the combined data
+        # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1
         group_of_samples, presented_groups = grouping.group_generation(
-            combined_data, con_tube_number
+            combined_data_df, con_tube_number
         )
 
-        # Normalized the values from combined data to the T1 values and export it into csv and pickle files.
-        T1_values = combined_data.loc[:, group_of_samples[0]]
-        T1_value_average_max: float = T1_values.mean(axis=1).max()
-        T1_norm_combined_data = combined_data / T1_value_average_max
-        T1_norm_combined_data.to_pickle(norm_cdata_path)
-
-        # Calculate the average and stdev of the normalized combined data and combined them into one dataframe
-        norm_combined_data = pd.DataFrame
-        counter = 1
-
-        for group in presented_groups:
-            temp_col_name = "{}".format(group_dict[counter])
-            print(len(T1_norm_combined_data.loc[:, group].columns))
-            mean_col_name = temp_col_name + "_mean"
-            std_col_name = temp_col_name + "_std"
-            mean_col = T1_norm_combined_data.loc[:, group].mean(axis=1)
-            std_col = T1_norm_combined_data.loc[:, group].std(axis=1)
-            mean_col.rename(mean_col_name, inplace=True)
-            std_col.rename(std_col_name, inplace=True)
-            group_data = pd.concat([mean_col, std_col], axis=1)
-
-            if counter == 1:
-                norm_combined_data = group_data
-            else:
-                norm_combined_data = pd.concat([norm_combined_data, group_data], axis=1)
-            counter += 1
-
-        norm_combined_data.insert(0, "time (min)", time_list_mins, True)
-
-        # export the combined file for storage + quick access
-        norm_combined_data.to_pickle(sum_data_path)
+        """
+        Normalized the dataframe fo combined data with standard release value (T1) and 
+        export the dataframe into csv and/or pickle files for storage and quicker access
+        in Python
+        """
+        norm_data_df = cd.data_normalization(
+            combined_data_df, group_of_samples, paths[2]
+        )
 
         """
-        Move the processed data to the processed folder in specific folder corresponding to the test + conditions
-        if the folder does not exist, create the folder and move the file there, otherwise, move the file to the corresponsing folder
+        Combine the values from norm_data_df to calculate average and standard devaition of
+        each condition and combined it all into one dataframe. Export the dataframe into 
+        csv and/or pickle files for storage and quicker access in Python
         """
+        cd.data_combination(
+            norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
+        )
 
-        if not os.path.exists(processed_path):
-            os.mkdir(processed_path)
+        """
+        Move the processed data to the processed folder in specific folder 
+        corresponding to the test + conditions if the folder does not exist, 
+        create the folder and move the file there, otherwise, move the file to the 
+        corresponsing folder
+        """
+        if not os.path.exists(path[4]):
+            os.mkdir(path[4])
         else:
-            print("Folder name: {} already exists.".format(processed_path))
+            print("Folder name: {} already exists.".format(path[4]))
 
-        for f in glob.glob(fname + "*.{}".format(extension)):
-            shutil.move(path + f, processed_path + "/" + f)
+        for f in glob.glob(path[0] + "*.{}".format(extension)):
+            shutil.move(path + f, path[4] + "/" + f)
 
 
 else:
