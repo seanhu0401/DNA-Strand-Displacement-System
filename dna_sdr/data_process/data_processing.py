@@ -6,7 +6,7 @@ import pandas as pd
 def data_combination(fn, ext, groups, t_list_mins, cdata_path):
     # initial data after subtraction of baseline and data cleaning
     count = 0
-    cdata = pd.DataFrame
+    combined_df = pd.DataFrame
     print(fn)
 
     for file in glob.glob(fn + "*.{}".format(ext)):
@@ -69,12 +69,59 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path):
         # check if there are existing file for the condition. If there is, append the new data to it, else create a new dataframe and export afterward.
         if count == 0:
             if not os.path.exists(cdata_path):
-                cdata = norm_data
+                combined_df = norm_data
             else:
-                cdata = pd.read_pickle(cdata_path)
-                cdata = pd.concat([cdata, norm_data], axis=1)
+                combined_df = pd.read_pickle(cdata_path)
+                combined_df = pd.concat([combined_df, norm_data], axis=1)
         else:
-            cdata = pd.concat([cdata, norm_data], axis=1)
+            combined_df = pd.concat([combined_df, norm_data], axis=1)
         count += 1
 
-    return cdata
+    return combined_df
+
+
+def data_normalization(df, groups, ndata_path):
+    """
+    Normalized the values from combined data to the standard release
+    values and export it into csv and/or pickle file for storage and
+    quicker access in Python
+    """
+    standard_value = df.loc[:, groups[0]]
+    standard_value_average_max: float = standard_value.mean(axis=1).max()
+    standard_norm_df = df / standard_value_average_max
+    standard_norm_df.to_pickle(ndata_path)
+
+    return standard_norm_df
+
+
+def data_combination(df, time_list, group_dict, presented_groups, sdata_path):
+    # Calculate the average and stdev of the normalized combined data
+    # and combined them into one dataframe
+    norm_combined_data_df = pd.DataFrame
+    counter = 1
+
+    for group in presented_groups:
+        temp_col_name = "{}".format(group_dict[counter])
+        print(len(df.loc[:, group].columns))
+        mean_col_name = temp_col_name + "_mean"
+        std_col_name = temp_col_name + "_std"
+        mean_col = df.loc[:, group].mean(axis=1)
+        std_col = df.loc[:, group].std(axis=1)
+        mean_col.rename(mean_col_name, inplace=True)
+        std_col.rename(std_col_name, inplace=True)
+        group_data = pd.concat([mean_col, std_col], axis=1)
+
+        if counter == 1:
+            norm_combined_data_df = group_data
+        else:
+            norm_combined_data_df = pd.concat(
+                [norm_combined_data_df, group_data], axis=1
+            )
+        counter += 1
+
+    norm_combined_data_df.insert(0, "time (min)", time_list, True)
+
+    # export the combined file for storage + quick access
+    norm_combined_data_df.to_pickle(sdata_path)
+
+    return

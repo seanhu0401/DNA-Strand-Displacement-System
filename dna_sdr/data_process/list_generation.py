@@ -18,13 +18,13 @@ def trig_list_gen(fname_list):
     return trig_list
 
 
-def file_path_generation(t_type, trig_type):
+def file_path_generation(test_type, trig_type):
     pickle_extension = "pkl"
     pickle_save_path = "../Output/Pickles"
     parent_dir = "../Processed/"
 
-    if t_type == "Ratio" or t_type == "Screen" or t_type == "Conc":
-        dir_name = "4WJ_HEX_{t_test}_{Trig}".format(t_test=t_type, Trig=trig_type)
+    if test_type == "Ratio" or test_type == "Screen" or test_type == "Conc":
+        dir_name = "4WJ_HEX_{t_test}_{Trig}".format(t_test=test_type, Trig=trig_type)
 
     else:
         raise Exception("unknown test type")
