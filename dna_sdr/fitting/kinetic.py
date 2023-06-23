@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 from lmfit import minimize, Parameters
 
 
-def simple(t, X, const):
+def kinetic(t, X, const):
     # simplified system of ODE for SDR system
     I = X[0]
     QT = X[1]
@@ -30,7 +30,13 @@ def simple(t, X, const):
 
 def fn_solve(t, x0, paras):
     x = solve_ivp(
-        simple, (0, max(t) + 10), x0, t_eval=t, args=(paras,), rtol=1e-9, method="LSODA"
+        kinetic,
+        (0, max(t) + 10),
+        x0,
+        t_eval=t,
+        args=(paras,),
+        rtol=1e-9,
+        method="LSODA",
     )
     return x.y
 
