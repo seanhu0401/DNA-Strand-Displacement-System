@@ -52,15 +52,15 @@ if __name__ == "__main__":
     trig_curve_param_df.to_pickle("./dna_sdr/pickles/trig_curve_param.pkl")
     trig_kin_param_df.to_pickle("./dna_sdr/pickles/trig_kin_param.pkl")
 
-    trig_curve_param_df["Plate loc"] = (
+    trig_curve_param_df["plate_loc"] = (
         trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
     )
     trig_curve_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
-    trig_kin_param_df["Plate loc"] = (
+    trig_kin_param_df["plate_loc"] = (
         trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
     )
     trig_kin_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
-    param_df = pd.merge(trig_curve_param_df, trig_kin_param_df, on="Plate loc")
+    param_df = pd.merge(trig_curve_param_df, trig_kin_param_df, on="plate_loc")
     param_df.to_pickle("./dna_sdr/pickles/trig_param.pkl")

@@ -1,37 +1,54 @@
-import glob
-import os
 import pandas as pd
-import dna_sdr.fitting.curve as cf
+import numpy as np
 
 
-def param_df_gen():
-    df_list = list()
-    label_list = [
-        "Plate Number",
-        "Trigger type",
-        "plateau",
-        "rate",
-        "r_sq",
-        "plateau_error",
-        "rate_error",
-    ]
+def name_conversion(trig_df, info_df):
+    plate_loc_lst = list()
+    name_lst = list()
 
-    for f in glob.glob("*" + "Screen" + "*" + "summerized.pkl"):
-        parameter_list = cf.cf(f, label_list)
-        df = pd.DataFrame(parameter_list)
-        df_list.append(df)
+    for index in trig_df.index:
+        plate_loc = "_".join(index)
+        info = info_df[info_df["plate_loc"] == plate_loc]
+        name = info["name"]
+        if not name.empty:
+            plate_loc_lst.append(plate_loc)
+            name_lst.append(name.iloc[0])
 
-    parameter_df = pd.concat(df_list)
-    parameter_df = parameter_df.mask(parameter_df["r_sq"] <= 0.90).dropna()
-
-    return parameter_df
+    convert_dict = dict(zip(plate_loc_lst, name_lst))
+    return convert_dict
 
 
 if __name__ == "__main__":
-    os.chdir("./dna_sdr/IO/Output/Pickles")
-    param_df = param_df_gen()
-    trig_param_df = param_df.loc[param_df["Trigger type"] != "T1"]
+    trig_pickle = "./dna_sdr/pickles/trig_param.pkl"  # Fitting result
+    conc_pickle = "./dna_sdr/pickles/concentration.pkl"  # Nupack analysis
+    trig_info_pickle = "./dna_sdr/pickles/trig_info.pkl"  # Trigger design information
 
-    os.chdir("../../../..")
-    trig_param_df.to_pickle("./dna_sdr/pickles/trig.pkl")
-    # trig_df.to_csv("./dna_sdr/trig-df.csv")
+    trig_cf_df = pd.read_pickle(trig_pickle)
+    trig_info_df = pd.read_pickle(trig_info_pickle)
+    conc_df = pd.read_pickle(conc_pickle)
+
+    # Reordering the columns for the dataframe
+    cols = trig_cf_df.columns.tolist()
+    cols.insert(0, "plate_loc")
+    cols.pop(6)
+    trig_cf_df = trig_cf_df[cols]
+
+    trig_info_cf_df = pd.merge(trig_info_df, trig_cf_df, on="plate_loc")
+
+    # Recover the trigger name from the nupack analysis
+    name_lst = list()
+    for index in conc_df.index:
+        name = index.split("+")[0][1:]
+        name_lst.append(name)
+
+    conc_df["name"] = name_lst
+    conc_df.reset_index(inplace=True)
+    merged_df = pd.merge(trig_info_cf_df, conc_df, on="name")
+    merged_df.drop("index", axis=1, inplace=True)
+    merged_df.rename(columns={"Conc (nM)": "Nupack"}, inplace=True)
+    merged_df["percent diff"] = (
+        (merged_df["plateau"] - merged_df["Nupack"]) / merged_df["Nupack"] * 100
+    )
+
+    print(merged_df)
+    # merged_df.to_csv("merged_df.csv")
