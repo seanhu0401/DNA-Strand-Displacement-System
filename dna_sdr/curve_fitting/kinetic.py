@@ -105,5 +105,5 @@ if __name__ == "__main__":
     trig_params_df = parameter_df.loc[parameter_df["Trigger type"] != "T1"]
 
     # print(trig_params_df)
-    trig_params_df.to_pickle("trig_kinetic.pkl")
-    trig_params_df.to_csv("trig_kinetic.csv")
+    # trig_params_df.to_pickle("trig_kinetic.pkl")
+    # trig_params_df.to_csv("trig_kinetic.csv")
