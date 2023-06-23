@@ -1,21 +1,4 @@
 import pandas as pd
-import numpy as np
-
-
-def name_conversion(trig_df, info_df):
-    plate_loc_lst = list()
-    name_lst = list()
-
-    for index in trig_df.index:
-        plate_loc = "_".join(index)
-        info = info_df[info_df["plate_loc"] == plate_loc]
-        name = info["name"]
-        if not name.empty:
-            plate_loc_lst.append(plate_loc)
-            name_lst.append(name.iloc[0])
-
-    convert_dict = dict(zip(plate_loc_lst, name_lst))
-    return convert_dict
 
 
 if __name__ == "__main__":
