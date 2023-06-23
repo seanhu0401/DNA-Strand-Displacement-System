@@ -55,7 +55,6 @@ def cf(file, labels: list, eq=one_phase_association):
         mean = mean.squeeze()
         std = std.squeeze()
         results = general_cf_process(eq, time, mean, std)
-        print(results)
 
         try:
             group_list.extend([*results[0], results[1], *results[2]])
