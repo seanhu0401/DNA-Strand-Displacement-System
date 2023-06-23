@@ -17,12 +17,12 @@ def one_phase_association(time, plateau, k):
     return plateau * (1 - np.exp(-k * time))
 
 
-def general_cf_process(eq, x_df, y_df):
+def general_cf_process(eq, x_df, y_df, std, p0=[500, 0.01]):
     r_square = 0
-    popt = None
-    perr = None
+    popt = np.zeros(len(p0))
+    perr = np.zeros(len(p0))
     try:
-        popt, pcov = curve_fit(eq, x_df, y_df)
+        popt, pcov = curve_fit(eq, x_df, y_df, sigma=std, absolute_sigma=True, p0=p0)
         residual = y_df - eq(np.array(x_df), *popt)
         ss_res = np.sum(residual**2)
         ss_tot = np.sum((y_df - np.mean(y_df)) ** 2)
@@ -55,8 +55,12 @@ def cf(file, labels: list, eq=one_phase_association):
         mean = mean.squeeze()
         std = std.squeeze()
         results = general_cf_process(eq, time, mean, std)
+        print(results)
 
-        group_list.extend([*results[0], results[1], *results[2]])
+        try:
+            group_list.extend([*results[0], results[1], *results[2]])
+        except TypeError:
+            pass
 
         if len(group_list) != len(labels):
             print(labels)
