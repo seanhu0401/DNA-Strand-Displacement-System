@@ -3,30 +3,46 @@ import os
 import pandas as pd
 
 
-def data_combination(fn, ext, groups, t_list_mins, cdata_path):
+# TODO: Update the data combination function for concentration screening
+def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
     # initial data after subtraction of baseline and data cleaning
     count = 0
     combined_df = pd.DataFrame
     print(fn)
+    test_type = fn.split("_")[2]
+    query_str = fn + "*.{}".format(ext)
+    if test_type == "Conc":
+        query_str = "{}_{}_*.{}".format(fn, opt, ext)
 
-    for file in glob.glob(fn + "*.{}".format(ext)):
-        # Check if the file has the positive and negative control tube location reversed
-        if file.split(".")[0].split("_")[-1] == "RC":
-            pos_con_tube_number = (groups * 4) + 1
-            neg_con_tube_number = pos_con_tube_number + 4
-            col_read = [str(i) for i in range(1, neg_con_tube_number + 4)]
-            reverse_control = True
-            print(
-                "This file contained the study with the reversed control order: {}".format(
-                    file
+    for file in glob.glob(query_str):
+        if test_type == "Screen":
+            # Check if the file has the positive and negative control tube location reversed
+            if file.split(".")[0].split("_")[-1] == "RC":
+                pos_con_tube_number = (groups * 4) + 1
+                neg_con_tube_number = pos_con_tube_number + 4
+                col_read = [str(i) for i in range(1, neg_con_tube_number + 4)]
+                reverse_control = True
+                print(
+                    "This file contained the study with the reversed control order: {}".format(
+                        file
+                    )
                 )
-            )
 
-        else:
+            else:
+                neg_con_tube_number = (groups * 4) + 1
+                pos_con_tube_number = neg_con_tube_number + 4
+                col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
+                reverse_control = False
+
+        elif test_type == "Conc":
             neg_con_tube_number = (groups * 4) + 1
             pos_con_tube_number = neg_con_tube_number + 4
             col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
             reverse_control = False
+
+        else:
+            print("The current file name is {}".format(fn))
+            raise ValueError("The test type is unknown - {}".format(test_type))
 
         col_read.insert(0, "Cycle")
 
@@ -72,7 +88,8 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path):
                 combined_df = norm_data
             else:
                 combined_df = pd.read_pickle(cdata_path)
-                combined_df = pd.concat([combined_df, norm_data], axis=1)
+                if not combined_df.equal(norm_data):
+                    combined_df = pd.concat([combined_df, norm_data], axis=1)
         else:
             combined_df = pd.concat([combined_df, norm_data], axis=1)
         count += 1
@@ -80,6 +97,7 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path):
     return combined_df
 
 
+# TODO: Check if it works for the concentration study prior to uncomment pickle export
 def data_normalization(df, groups, ndata_path):
     """
     Normalized the values from combined data to the standard release
@@ -94,7 +112,8 @@ def data_normalization(df, groups, ndata_path):
     return standard_norm_df
 
 
-def data_combination(df, time_list, group_dict, presented_groups, sdata_path):
+# TODO: Check if it works for the concentration study prior to uncomment pickle export
+def data_average(df, time_list, group_dict, presented_groups, sdata_path):
     # Calculate the average and stdev of the normalized combined data
     # and combined them into one dataframe
     norm_combined_data_df = pd.DataFrame
@@ -120,6 +139,7 @@ def data_combination(df, time_list, group_dict, presented_groups, sdata_path):
         counter += 1
 
     norm_combined_data_df.insert(0, "time (min)", time_list, True)
+    print(norm_combined_data_df)
 
     # export the combined file for storage + quick access
     norm_combined_data_df.to_pickle(sdata_path)
