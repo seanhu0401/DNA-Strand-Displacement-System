@@ -52,11 +52,11 @@ if __name__ == "__main__":
         combined data dataframe for further analysis.
         """
         combined_data_df = dp.data_combination(
-            path[0], extension, groups, time_list_mins, path[1]
+            paths[0], extension, groups, time_list_mins, paths[1]
         )
 
         # export the combined file for storage + quick access
-        combined_data_df.to_pickle(path[1])
+        combined_data_df.to_pickle(paths[1])
 
         # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1
@@ -88,13 +88,13 @@ if __name__ == "__main__":
         create the folder and move the file there, otherwise, move the file to the 
         corresponsing folder
         """
-        if not os.path.exists(path[4]):
-            os.mkdir(path[4])
+        if not os.path.exists(paths[4]):
+            os.mkdir(paths[4])
         else:
-            print("Folder name: {} already exists.".format(path[4]))
+            print("Folder name: {} already exists.".format(paths[4]))
 
-        for f in glob.glob(path[0] + "*.{}".format(extension)):
-            shutil.move(path + f, path[4] + "/" + f)
+        for f in glob.glob(paths[0] + "*.{}".format(extension)):
+            shutil.move(path + f, paths[4] + "/" + f)
 
 
 else:
