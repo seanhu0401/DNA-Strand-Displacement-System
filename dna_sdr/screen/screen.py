@@ -3,7 +3,6 @@ import os
 import dna_sdr.data_process.list_generation as lst_gen
 import dna_sdr.data_process.data_processing as dp
 import dna_sdr.data_process.group as grouping
-import pandas as pd
 import shutil
 
 if __name__ == "__main__":
@@ -79,7 +78,7 @@ if __name__ == "__main__":
         each condition and combined it all into one dataframe. Export the dataframe into 
         csv and/or pickle files for storage and quicker access in Python
         """
-        dp.data_combination(
+        dp.data_average(
             norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
         )
 
