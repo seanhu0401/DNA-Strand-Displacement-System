@@ -1,9 +1,10 @@
 import glob
 import os
-import dna_sdr.data_process.list_generation as lst_gen
-import dna_sdr.data_process.data_processing as dp
-import dna_sdr.data_process.group as grouping
 import shutil
+import regex as re
+import dna_sdr.data_process.list_generation as lst_gen
+import dna_sdr.data_process.group as grouping
+import dna_sdr.data_process.data_processing as dp
 
 if __name__ == "__main__":
     cwd = os.getcwd()
@@ -11,12 +12,12 @@ if __name__ == "__main__":
     extension = "csv"
     os.chdir(path)
 
-    test_type = "Screen"
+    test_type = "Conc"
     file_list = []
 
     # Loop through the files from the input folder and find the matching files for processing
     # Add the trigger type into a list and convert to a dict for selection
-    fname_search = "4WJ_HEX_Screen" + "*.{}".format(extension)
+    fname_search = "4WJ_HEX_" + "{}_*.{}".format(test_type, extension)
     for f in glob.glob(fname_search):
         if f not in file_list:
             file_list.append(f)
@@ -34,15 +35,22 @@ if __name__ == "__main__":
 
         """
         Save file path generation
-        path[0] = fname 
+        path[0] = partial fname
         path[1] = combined_data_path
         path[2] = norm_cdata_path
         path[3] = sum_data_path
         path[4] = processed_path
         """
         paths = lst_gen.file_path_generation(test_type, trig_type_selected)
+        fn = [f for f in file_list if re.match(paths[0] + "_*", f)]
 
-        groups, group_list = grouping.group_query(paths[0])
+        lower_len = len([f for f in fn if re.match(r"\w*_under", f)])
+        upper_len = len([f for f in fn if re.match(r"\w*_over", f)])
+        if len(fn) == lower_len:
+            option = "under"
+        elif len(fn) == upper_len:
+            option = "over"
+        groups, group_list = grouping.group_query(paths[0], option)
         group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
         time_list_mins = lst_gen.time_list_generation(60)
 
@@ -51,12 +59,13 @@ if __name__ == "__main__":
         after normalization with the positive and negative control and generate a
         combined data dataframe for further analysis.
         """
+
         combined_data_df = dp.data_combination(
-            paths[0], extension, groups, time_list_mins, paths[1]
+            paths[0], extension, groups, time_list_mins, paths[1], opt=option
         )
 
         # export the combined file for storage + quick access
-        combined_data_df.to_pickle(paths[1])
+        # combined_data_df.to_pickle(path[1])
 
         # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1
@@ -95,7 +104,3 @@ if __name__ == "__main__":
 
         for f in glob.glob(paths[0] + "*.{}".format(extension)):
             shutil.move(path + f, paths[4] + "/" + f)
-
-
-else:
-    print()

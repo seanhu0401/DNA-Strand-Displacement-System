@@ -27,7 +27,7 @@ def file_path_generation(test_type, trig_type):
         dir_name = "4WJ_HEX_{t_test}_{Trig}".format(t_test=test_type, Trig=trig_type)
 
     else:
-        raise Exception("unknown test type")
+        raise Exception("unknown test type - {}".format(test_type))
 
     combined_data_after_baseline_subtraction_pickle = "{base}.{extension}".format(
         base=dir_name, extension=pickle_extension
