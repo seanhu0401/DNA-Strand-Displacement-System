@@ -31,3 +31,9 @@ The data files that are processed under this will be moved to a seperate folder 
 The ratio study is used to examine how different ratio of triggers affects the release profile.
 
 ## Curve fitting
+
+The curve fitting was carried out using the lmfit package using two models: one phase association and a simplified one step, irreversible second order rate law kinetic. Model class from lmfit was used for the weighted curve fitting. The model takes in the time points (t), mean release quantities (y), and the standard deviations for the weighted fitting. Those values for each condition were calculated prior in the data processing step.
+
+The one phase association fitting was a classic curve fitting procedure by adjusting the two parameteres, platuea and rate, to minimize the error between the predicted values from the observed values. The kinetic model was similar with an extra step of solving the series of ordinary differential equations as a initial value problem. This is acheived by using the solve_ivp funciton in Scipy.integrate with LSODA method. The initial condition was set to be 500 nM of initial species and  0 nM of products to be consistant with the experimental procedures. The 3-$\sigma$ uncertainty bands for both models were calculated using the eval_uncertainty function from lmfit. The parameters for both models were extract along with the goodness-of-fit value ($r^2$) into a seperate dataframe and exported into a pickle file for a fast retrival and preserved the format within Python. 
+
+## Nupack simulation
