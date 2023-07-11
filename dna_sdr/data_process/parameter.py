@@ -3,8 +3,8 @@ import pandas as pd
 
 if __name__ == "__main__":
     os.chdir("./dna_sdr/pickles")
-    curve_param_df = pd.read_pickle("one_phase_param.pkl")
-    kinetic_param_df = pd.read_pickle("kinetic_param.pkl")
+    curve_param_df = pd.read_pickle("screen_one_phase_param.pkl")
+    kinetic_param_df = pd.read_pickle("screen_kinetic_param.pkl")
 
     trig_curve_param_df = curve_param_df.loc[curve_param_df["Trigger type"] != "T1"]
     trig_kin_param_df = kinetic_param_df.loc[kinetic_param_df["Trigger type"] != "T1"]
