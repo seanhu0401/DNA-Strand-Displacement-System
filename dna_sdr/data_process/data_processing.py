@@ -97,7 +97,6 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
     return combined_df
 
 
-# TODO: Check if it works for the concentration study prior to uncomment pickle export
 def data_normalization(df, groups, ndata_path):
     """
     Normalized the values from combined data to the standard release
@@ -112,7 +111,6 @@ def data_normalization(df, groups, ndata_path):
     return standard_norm_df
 
 
-# TODO: Check if it works for the concentration study prior to uncomment pickle export
 def data_average(df, time_list, group_dict, presented_groups, sdata_path):
     # Calculate the average and stdev of the normalized combined data
     # and combined them into one dataframe
