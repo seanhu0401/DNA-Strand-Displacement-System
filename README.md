@@ -4,6 +4,10 @@
 
 The data process was used to process the data generate from the "Q" qpcr machine. The data from the machine is stored in a csv file formate with the general naming convension of "4WJ_HEX\_{test-type}\_{plate number}\_{trigger}\_{trigger}". There are slight variation for the naming convention depending on the test type.
 
+### General processing
+
+The data processing script will detemine the test gorups and condtions based on the file name and search the input files for any csv files that matches the search string. 
+
 ## Test type present
 
 There are currently three test types: concentration (Conc), ratio (Ratio), and screening (screen)
