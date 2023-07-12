@@ -96,7 +96,7 @@ def fit(file, equation: str, labels: list):
     return params_list, full_result_dict
 
 
-def parameter_determination():
+def parameter_determination(test):
     one_phase_df_list = list()
     one_phase_result_dict = dict()
     one_phase_list = [
@@ -119,7 +119,7 @@ def parameter_determination():
         "k_error",
     ]
 
-    for f in glob.glob("*" + "Screen" + "*" + "summerized.pkl"):
+    for f in glob.glob("*" + test + "*" + "summerized.pkl"):
         print(f)
         one_phase_params_list, one_phase_results = fit(f, "one_phase", one_phase_list)
         if not bool(one_phase_result_dict):
@@ -153,12 +153,12 @@ def parameter_determination():
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
 
-    output = parameter_determination()
+    test_type = "screen"
+
+    output = parameter_determination(test_type)
 
     os.chdir("../../../..")
     os.chdir("./dna_sdr/pickles/")
-
-    test_type = "screen"
 
     if os.path.exists("{}_one_phase_param.pkl".format(test_type)):
         one_phase_params_df = pd.read_pickle("{}_one_phase_param.pkl".format(test_type))
