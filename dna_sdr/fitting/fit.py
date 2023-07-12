@@ -38,20 +38,23 @@ def kin_fit(t, y0, k1):
     return x.y[2]
 
 
-def fit(file, equation: str, labels: list):
+def fit(file, test, equation: str, labels: list):
     df = pd.read_pickle(file)
     plate_num = file.split("_")[3]
     time_df = df["time (min)"]
     mean_df = df.filter(regex="mean")
     std_df = df.filter(regex="std")
     y0 = [500, 500, 0, 0]
-    conditions = [i.split("_")[0] for i in mean_df.columns]
+    if test == "screen":
+        conditions = [i.split("_")[0] for i in mean_df.columns]
+    elif test == "Conc":
+        conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
 
     params_list = list()
     full_result_dict = dict()
+
     for condition in conditions:
         params_group_list = [plate_num, condition]
-
         mean = mean_df.filter(regex=condition) * 500
         std = std_df.filter(regex=condition) * 500
         mean = mean.squeeze()
@@ -80,7 +83,6 @@ def fit(file, equation: str, labels: list):
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
-            # print(params_group_list)
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
@@ -121,7 +123,9 @@ def parameter_determination(test):
 
     for f in glob.glob("*" + test + "*" + "summerized.pkl"):
         print(f)
-        one_phase_params_list, one_phase_results = fit(f, "one_phase", one_phase_list)
+        one_phase_params_list, one_phase_results = fit(
+            f, test, "one_phase", one_phase_list
+        )
         if not bool(one_phase_result_dict):
             one_phase_result_dict = one_phase_results
         else:
@@ -129,7 +133,7 @@ def parameter_determination(test):
         one_phase_df = pd.DataFrame(one_phase_params_list)
         one_phase_df_list.append(one_phase_df)
 
-        kinetic_params_list, kinetic_results = fit(f, "kinetic", kinetic_list)
+        kinetic_params_list, kinetic_results = fit(f, test, "kinetic", kinetic_list)
         if not bool(kinetic_result_dict):
             kinetic_result_dict = kinetic_results
         else:
@@ -152,8 +156,7 @@ def parameter_determination(test):
 
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
-
-    test_type = "screen"
+    test_type = "Conc"
 
     output = parameter_determination(test_type)
 

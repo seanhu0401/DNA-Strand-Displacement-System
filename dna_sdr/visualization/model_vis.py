@@ -14,7 +14,7 @@ plt.rc("axes", titlesize=14)
 if __name__ == "__main__":
     os.chdir("./dna_sdr/pickles/")
     time = time_list_generation(60)
-    test = "screen"
+    test = "Conc"
 
     with open("{}_one_phase_result.pkl".format(test), "rb") as one_phase_assoc:
         one_phase = pickle.load(one_phase_assoc)
