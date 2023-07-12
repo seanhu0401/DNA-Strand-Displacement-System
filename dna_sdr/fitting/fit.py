@@ -158,62 +158,27 @@ if __name__ == "__main__":
     os.chdir("../../../..")
     os.chdir("./dna_sdr/pickles/")
 
-    if os.path.exists("one_phase_param.pkl"):
-        one_phase_params_df = pd.read_pickle("one_phase_param.pkl")
-        if not one_phase_params_df.equals(output[0]):
-            output[0].to_pickle("one_phase_param.pkl")
-            with open("one_phase_result.pkl", "wb") as fp:
-                pickle.dump(output[2], fp)
+    test_type = "screen"
 
-    if os.path.exists("kinetic_param.pkl"):
-        kine_params_df = pd.read_pickle("kinetic_param.pkl")
+    if os.path.exists("{}_one_phase_param.pkl".format(test_type)):
+        one_phase_params_df = pd.read_pickle("{}_one_phase_param.pkl".format(test_type))
+        if not one_phase_params_df.equals(output[0]):
+            output[0].to_pickle("{}_one_phase_param.pkl".format(test_type))
+            with open("{}_one_phase_result.pkl".format(test_type), "wb") as fp:
+                pickle.dump(output[2], fp)
+    else:
+        output[0].to_pickle("{}_one_phase_param.pkl".format(test_type))
+        with open("{}_one_phase_result.pkl".format(test_type), "wb") as fp:
+            pickle.dump(output[2], fp)
+
+    if os.path.exists("{}_kinetic_param.pkl".format(test_type)):
+        kine_params_df = pd.read_pickle("{}_kinetic_param.pkl".format(test_type))
         if not kine_params_df.equals(output[1]):
-            output[1].to_pickle("kinetic_param.pkl")
-            with open("kinetic_result.pkl", "wb") as fp:
+            output[1].to_pickle("{}_kinetic_param.pkl".format(test_type))
+            with open("{}_kinetic_result.pkl".format(test_type), "wb") as fp:
                 pickle.dump(output[3], fp)
 
-    # df = pd.read_pickle(
-    #     "./dna_sdr/IO/Output/Pickles/4WJ_HEX_Screen_P1_A06_A10_summerized.pkl"
-    # )
-
-    # model = Model(one_phase_association)
-    # params = model.make_params(plateau=250, k=0.01)
-
-    # time_df = df["time (min)"]
-    # mean_df = df.filter(regex="mean")
-    # std_df = df.filter(regex="std")
-
-    # mean = mean_df.iloc[:, 1] * 500
-    # std = std_df.iloc[:, 1] * 500
-
-    # result = model.fit(mean, params, time=time_df, weights=1 / std)
-    # dely_assoc = result.eval_uncertainty(sigma=3)
-    # print(result.fit_report())
-
-    # kin_model = Model(kin_fit, independent_vars=["t", "y0"])
-    # y0 = [500, 500, 0, 0]
-    # params = kin_model.make_params(k1=dict(value=1e-6, min=10e-9, max=10e1))
-    # kin_result = kin_model.fit(mean, params, t=time_df, y0=y0, weights=1 / std)
-    # dely_kine = kin_result.eval_uncertainty(sigma=3)
-    # print(kin_result.fit_report())
-
-    # plt.plot(time_df, mean, "o")
-    # plt.errorbar(time_df, mean, std, ls="none", elinewidth=1, capsize=3)
-    # plt.plot(time_df, result.best_fit, "-", label="lmfit_one_phase_assoc.")
-    # plt.plot(time_df, kin_result.best_fit, "--", label="lmfit_kinetic")
-    # plt.fill_between(
-    #     time_df,
-    #     result.best_fit - dely_assoc,
-    #     result.best_fit + dely_assoc,
-    #     color="#ABABAB",
-    #     label="3-$\sigma$ uncertainty band of one phase assoc.",
-    # )
-    # plt.fill_between(
-    #     time_df,
-    #     kin_result.best_fit - dely_kine,
-    #     kin_result.best_fit + dely_kine,
-    #     color="r",
-    #     label="3-$\sigma$ uncertainty band of kinetic model",
-    # )
-    # plt.legend()
-    # plt.show()
+    else:
+        output[1].to_pickle("{}_kinetic_param.pkl".format(test_type))
+        with open("{}_kinetic_result.pkl".format(test_type), "wb") as fp:
+            pickle.dump(output[3], fp)
