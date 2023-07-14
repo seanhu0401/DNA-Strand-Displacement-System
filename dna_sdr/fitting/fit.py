@@ -48,7 +48,11 @@ def fit(file, test, equation: str, labels: list):
     if test == "screen":
         conditions = [i.split("_")[0] for i in mean_df.columns]
     elif test == "Conc":
-        conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
+        if file.split("_")[4] == "A00":
+            conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
+        else:
+            conditions = ["_".join(i.split("_")[1:-1]) for i in mean_df.columns]
+            conditions[0] = "T1"
 
     params_list = list()
     full_result_dict = dict()

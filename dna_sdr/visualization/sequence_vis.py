@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import dna_sdr.sequence.seq_utilits as seq_utilits
 from dna_sdr.sequence.dna_utilits import DNA
 
-marker_dict = {1: "o", 2: "x", 3: "s", 4: "|"}
+marker_dict = {1: ".", 2: "x", 3: "s", 4: "|"}
 
 
 def mismatched_maker_gen(comparision_dict: dict):
