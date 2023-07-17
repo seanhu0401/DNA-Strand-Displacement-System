@@ -7,13 +7,24 @@ def trig_list_gen(fname_list):
     re_query = "[a-zA-Z]\d\d"
     for fname in fname_list:
         split_name = fname.split(".")[0].split("_")
-        plate_number = split_name[3]
-
         match = re.findall(re_query, fname)
-        trig_type = plate_number + "_" + "_".join(match)
 
-        if trig_type not in trig_list:
-            trig_list.append(trig_type)
+        if split_name[2] != "Ratio":
+            plate_number = split_name[3]
+            trig_type = plate_number + "_" + "_".join(match)
+
+            if trig_type not in trig_list:
+                trig_list.append(trig_type)
+
+        elif split_name[2] == "Ratio":
+            plate_number_1 = split_name[3]
+            plate_number_2 = split_name[5]
+            trig_type = (
+                plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
+            )
+
+            if trig_type not in trig_list:
+                trig_list.append(trig_type)
 
     return trig_list
 

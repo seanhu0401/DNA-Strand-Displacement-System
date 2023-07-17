@@ -3,7 +3,6 @@ import os
 import pandas as pd
 
 
-# TODO: Update the data combination function for concentration screening
 def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
     # initial data after subtraction of baseline and data cleaning
     count = 0
@@ -137,7 +136,6 @@ def data_average(df, time_list, group_dict, presented_groups, sdata_path):
         counter += 1
 
     norm_combined_data_df.insert(0, "time (min)", time_list, True)
-
     # export the combined file for storage + quick access
     norm_combined_data_df.to_pickle(sdata_path)
 

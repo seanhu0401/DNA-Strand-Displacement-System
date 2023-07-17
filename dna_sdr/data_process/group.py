@@ -53,18 +53,19 @@ def group_query(fname, option=None):
             group_lst = ["T1_" + str(conc) for conc in conc_lst]
         else:
             name_lst = [
-                "{}_{}_".format(split_fname[-2], match[0]) + str(conc)
+                "{}_{}_".format(split_fname[2], match[0]) + str(conc)
                 for conc in conc_lst
             ]
             group_lst.extend(name_lst)
         group_quant = len(group_lst)
 
     elif split_fname[2] == "Ratio":
+        trig = "{}_{}_{}_{}".format(split_fname[3], match[0], split_fname[5], match[1])
         single_conc_lst = [100, 75, 50, 25, 0]
         ratio_tuple_lst = list(zip(single_conc_lst, single_conc_lst[::-1]))
 
         def combine(tuple_pair: tuple):
-            return str(tuple_pair[0]) + "_" + str(tuple_pair[-1])
+            return trig + "_" + str(tuple_pair[0]) + "_" + str(tuple_pair[-1])
 
         group_lst = list(map(combine, ratio_tuple_lst))
         group_quant = len(group_lst)
