@@ -65,7 +65,7 @@ if __name__ == "__main__":
         )
 
         # export the combined file for storage + quick access
-        # combined_data_df.to_pickle(path[1])
+        combined_data_df.to_pickle(path[1])
 
         # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1

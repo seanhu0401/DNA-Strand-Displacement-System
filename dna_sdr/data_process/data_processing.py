@@ -34,7 +34,7 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
                 col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
                 reverse_control = False
 
-        elif test_type == "Conc":
+        elif test_type == "Conc" or test_type == "Ratio":
             neg_con_tube_number = (groups * 4) + 1
             pos_con_tube_number = neg_con_tube_number + 4
             col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
@@ -137,7 +137,6 @@ def data_average(df, time_list, group_dict, presented_groups, sdata_path):
         counter += 1
 
     norm_combined_data_df.insert(0, "time (min)", time_list, True)
-    print(norm_combined_data_df)
 
     # export the combined file for storage + quick access
     norm_combined_data_df.to_pickle(sdata_path)
