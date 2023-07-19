@@ -47,6 +47,7 @@ def fit(file, test, equation: str, labels: list):
     y0 = [500, 500, 0, 0]
     if test == "screen":
         conditions = [i.split("_")[0] for i in mean_df.columns]
+
     elif test == "Conc":
         if file.split("_")[4] == "A00":
             conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
@@ -54,11 +55,18 @@ def fit(file, test, equation: str, labels: list):
             conditions = ["_".join(i.split("_")[1:-1]) for i in mean_df.columns]
             conditions[0] = "T1"
 
+    elif test == "Ratio":
+        conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
+
     params_list = list()
     full_result_dict = dict()
 
     for condition in conditions:
-        params_group_list = [plate_num, condition]
+        if test == "Ratio":
+            params_group_list = [condition]
+        else:
+            params_group_list = [plate_num, condition]
+
         mean = mean_df.filter(regex=condition) * 500
         std = std_df.filter(regex=condition) * 500
         mean = mean.squeeze()
@@ -105,25 +113,45 @@ def fit(file, test, equation: str, labels: list):
 def parameter_determination(test):
     one_phase_df_list = list()
     one_phase_result_dict = dict()
-    one_phase_list = [
-        "Plate Number",
-        "Trigger type",
-        "plateau",
-        "rate",
-        "r_sq_curve",
-        "plateau_error",
-        "rate_error",
-    ]
 
     kinetic_df_list = list()
     kinetic_result_dict = dict()
-    kinetic_list = [
-        "Plate Number",
-        "Trigger type",
-        "k_rate",
-        "r_sq_kin",
-        "k_error",
-    ]
+
+    if test == "Ratio":
+        one_phase_list = [
+            "Condition",
+            "plateau",
+            "rate",
+            "r_sq_curve",
+            "plateau_error",
+            "rate_error",
+        ]
+
+        kinetic_list = [
+            "Condition",
+            "k_rate",
+            "r_sq_kin",
+            "k_error",
+        ]
+
+    elif test == "Conc" or test == "screen":
+        one_phase_list = [
+            "Plate Number",
+            "Trigger type",
+            "plateau",
+            "rate",
+            "r_sq_curve",
+            "plateau_error",
+            "rate_error",
+        ]
+
+        kinetic_list = [
+            "Plate Number",
+            "Trigger type",
+            "k_rate",
+            "r_sq_kin",
+            "k_error",
+        ]
 
     for f in glob.glob("*" + test + "*" + "summerized.pkl"):
         print(f)
@@ -160,7 +188,7 @@ def parameter_determination(test):
 
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
-    test_type = "Conc"
+    test_type = "Ratio"
 
     output = parameter_determination(test_type)
 
