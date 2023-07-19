@@ -23,6 +23,65 @@ CB_color_cycle = [
 ]
 
 
+def fit_plot(test, fit_cond, x, result, condition, color="#377eb8", ax=None):
+    if ax is None:
+        ax = plt.gca()
+
+    data = result.data
+    uncertainty = result.eval_uncertainty(sigma=3)
+    error = 1 / result.weights
+
+    if test == "Conc":
+        ax.errorbar(
+            x,
+            data,
+            error,
+            elinewidth=1,
+            capsize=3,
+            fmt="o",
+            label="{}%".format(condition.split("_")[-1]),
+            color=color,
+        )
+        ax.plot(x, result.best_fit, "--", color="#ff7f00")
+        ax.fill_between(
+            x,
+            result.best_fit - uncertainty,
+            result.best_fit + uncertainty,
+            color="#ABABAB",
+        )
+    elif test == "screen":
+        ax.errorbar(
+            x, data, error, elinewidth=1, capsize=3, fmt="o", label="exp.", color=color
+        )
+        ax.fill_between(
+            x,
+            result.best_fit - uncertainty,
+            result.best_fit + uncertainty,
+            color="#ABABAB",
+            label="3-$\sigma$ uncertainty band",
+        )
+        ax.plot(x, result.best_fit, "--", label=fit_cond, color="#ff7f00")
+        ax.fill_between(
+            x,
+            result.best_fit - uncertainty,
+            result.best_fit + uncertainty,
+            color="#ABABAB",
+            label="3-$\sigma$ uncertainty band",
+        )
+        ax.text(
+            0.95,
+            0.1,
+            "r$^2$ = {:2f}".format(result.rsquared),
+            verticalalignment="bottom",
+            horizontalalignment="right",
+            transform=ax.transAxes,
+            fontsize=15,
+        )
+    ax.set_ylabel("Release (nM)")
+    ax.set_xlabel("Time (min)")
+    return ax
+
+
 if __name__ == "__main__":
     os.chdir("./dna_sdr/pickles/")
     time = time_list_generation(60)
@@ -34,85 +93,73 @@ if __name__ == "__main__":
     with open("{}_kinetic_result.pkl".format(test), "rb") as kin:
         kine = pickle.load(kin)
 
-    for condition in one_phase:
-        result_one_phase = one_phase[condition]
-        data_one_phase = result_one_phase.data
-        dely_one_phase = result_one_phase.eval_uncertainty(sigma=3)
+    if test == "Conc":
+        filter_one_phase_lst = list()
+        filter_kine_lst = list()
+        x = ["_".join(condition.split("_")[:2]) for condition in one_phase]
+        con = [*set(x)]
+        for item in con:
+            filtered_one_phase = {
+                k: v for k, v in one_phase.items() if (item in k and k != "P0_T1")
+            }
+            filter_one_phase_lst.append(filtered_one_phase)
+            filtered_kin = {
+                k: v for k, v in kine.items() if (item in k and k != "P0_T1")
+            }
+            filter_kine_lst.append(filtered_kin)
 
-        result_kin = kine[condition]
-        data_kin = result_kin.data
-        dely_kin = result_kin.eval_uncertainty(sigma=3)
+        for set in range(len(filter_one_phase_lst)):
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            counter = 0
+            for condition in filter_one_phase_lst[set].keys():
+                one_phase_result = filter_one_phase_lst[set][condition]
+                kine_result = filter_kine_lst[set][condition]
+                fit_plot(
+                    test,
+                    "one phase assoc.",
+                    time,
+                    one_phase_result,
+                    condition,
+                    color=CB_color_cycle[counter],
+                    ax=ax1,
+                )
+                fit_plot(
+                    test,
+                    "kinetic",
+                    time,
+                    kine_result,
+                    condition,
+                    color=CB_color_cycle[counter],
+                    ax=ax2,
+                )
+                ax1.set_title("One phase association")
+                ax2.set_title("kinetic")
+                ax1.legend()
+                ax2.legend()
+                counter += 1
 
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-        ax1.errorbar(
-            time,
-            data_one_phase,
-            1 / result_one_phase.weights,
-            elinewidth=1,
-            capsize=3,
-            fmt="o",
-            label="exp.",
-        )
-        ax1.plot(
-            time,
-            result_one_phase.best_fit,
-            "--",
-            label="one phase association",
-            color="r",
-        )
-        ax1.fill_between(
-            time,
-            result_one_phase.best_fit - dely_one_phase,
-            result_one_phase.best_fit + dely_one_phase,
-            color="#ABABAB",
-            label="3-$\sigma$ uncertainty band",
-        )
-        ax1.text(
-            0.95,
-            0.2,
-            "r$^2$ = {:2f}".format(result_one_phase.rsquared),
-            verticalalignment="bottom",
-            horizontalalignment="right",
-            transform=ax1.transAxes,
-            fontsize=15,
-        )
-        ax1.set_ylabel("Release (nM)")
+            fig.suptitle("_".join(condition.split("_")[0:2]))
+            fig.set_figheight(9)
+            fig.set_figwidth(16)
+            # fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
+            plt.show()
+            # plt.close()
 
-        ax2.errorbar(
-            time,
-            data_kin,
-            1 / result_kin.weights,
-            elinewidth=1,
-            capsize=3,
-            fmt="o",
-            label="exp.",
-        )
-        ax2.plot(time, result_kin.best_fit, "--", label="kinetic")
-        ax2.fill_between(
-            time,
-            result_kin.best_fit - dely_kin,
-            result_kin.best_fit + dely_kin,
-            color="#ABABAB",
-            label="3-$\sigma$ uncertainty band",
-        )
-        ax2.text(
-            0.95,
-            0.2,
-            "r$^2$ = {:2f}".format(result_kin.rsquared),
-            verticalalignment="bottom",
-            horizontalalignment="right",
-            transform=ax2.transAxes,
-            fontsize=15,
-        )
-        ax2.set_ylabel("Release (nM)")
+    elif test == "screen":
+        for condition in one_phase:
+            result_one_phase = one_phase[condition]
 
-        for ax in fig.get_axes():
-            ax.set_xlabel("Time (min)")
+            result_kin = kine[condition]
 
-        fig.suptitle(condition)
-        fig.set_figheight(9)
-        fig.set_figwidth(16)
-        ax1.legend()
-        ax2.legend()
-        fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
-        plt.close()
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            ax1 = fit_plot(test, "one phase assoc.", time, result_one_phase, ax=ax1)
+            ax2 = fit_plot(test, "kinetic", time, result_kin, ax=ax2)
+
+            fig.suptitle(condition)
+            fig.set_figheight(9)
+            fig.set_figwidth(16)
+            ax1.legend()
+            ax2.legend()
+            # fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
+            # plt.show()
+            # plt.close()
