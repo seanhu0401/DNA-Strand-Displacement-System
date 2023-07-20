@@ -98,7 +98,10 @@ def fit(file, test, equation: str, labels: list):
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
-        result_dict = dict({"{}_{}".format(plate_num, condition): result})
+        if test != "Ratio":
+            result_dict = dict({"{}_{}".format(plate_num, condition): result})
+        elif test == "Ratio":
+            result_dict = dict({"{}".format(condition): result})
 
         param_group_dict = dict(zip(labels, params_group_list))
         params_list.append(param_group_dict)

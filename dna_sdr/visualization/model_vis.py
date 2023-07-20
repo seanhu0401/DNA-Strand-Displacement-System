@@ -49,6 +49,7 @@ def fit_plot(test, fit_cond, x, result, condition, color="#377eb8", ax=None):
             result.best_fit + uncertainty,
             color="#ABABAB",
         )
+
     elif test == "screen":
         ax.errorbar(
             x, data, error, elinewidth=1, capsize=3, fmt="o", label="exp.", color=color
@@ -77,6 +78,26 @@ def fit_plot(test, fit_cond, x, result, condition, color="#377eb8", ax=None):
             transform=ax.transAxes,
             fontsize=15,
         )
+
+    elif test == "Ratio":
+        ax.errorbar(
+            x,
+            data,
+            error,
+            elinewidth=1,
+            capsize=3,
+            fmt="o",
+            label="{}/{}".format(condition.split("_")[-2], condition.split("_")[-1]),
+            color=color,
+        )
+        ax.plot(x, result.best_fit, "--", color="#ff7f00")
+        ax.fill_between(
+            x,
+            result.best_fit - uncertainty,
+            result.best_fit + uncertainty,
+            color="#ABABAB",
+        )
+
     ax.set_ylabel("Release (nM)")
     ax.set_xlabel("Time (min)")
     return ax
@@ -85,7 +106,7 @@ def fit_plot(test, fit_cond, x, result, condition, color="#377eb8", ax=None):
 if __name__ == "__main__":
     os.chdir("./dna_sdr/pickles/")
     time = time_list_generation(60)
-    test = "Conc"
+    test = "Ratio"
 
     with open("{}_one_phase_result.pkl".format(test), "rb") as one_phase_assoc:
         one_phase = pickle.load(one_phase_assoc)
@@ -162,4 +183,57 @@ if __name__ == "__main__":
             ax2.legend()
             # fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
             # plt.show()
+            # plt.close()
+
+    elif test == "Ratio":
+        filter_one_phase_lst = list()
+        filter_kine_lst = list()
+        x = ["_".join(condition.split("_")[:4]) for condition in one_phase]
+        con = [*set(x)]
+        for item in con:
+            filtered_one_phase = {
+                k: v for k, v in one_phase.items() if (item in k and k != "P0_T1")
+            }
+            filter_one_phase_lst.append(filtered_one_phase)
+            filtered_kin = {
+                k: v for k, v in kine.items() if (item in k and k != "P0_T1")
+            }
+            filter_kine_lst.append(filtered_kin)
+
+        for set in range(len(filter_one_phase_lst)):
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            counter = 0
+            for condition in filter_one_phase_lst[set].keys():
+                one_phase_result = filter_one_phase_lst[set][condition]
+                kine_result = filter_kine_lst[set][condition]
+                fit_plot(
+                    test,
+                    "one phase assoc.",
+                    time,
+                    one_phase_result,
+                    condition,
+                    color=CB_color_cycle[counter],
+                    ax=ax1,
+                )
+                fit_plot(
+                    test,
+                    "kinetic",
+                    time,
+                    kine_result,
+                    condition,
+                    color=CB_color_cycle[counter],
+                    ax=ax2,
+                )
+                ax1.set_title("One phase association")
+                ax2.set_title("kinetic")
+                ax1.legend()
+                ax2.legend()
+                counter += 1
+
+            fig.suptitle("_".join(condition.split("_")[0:4]))
+            fig.set_figheight(9)
+            fig.set_figwidth(16)
+
+            # fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
+            plt.show()
             # plt.close()
