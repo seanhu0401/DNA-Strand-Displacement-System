@@ -11,7 +11,11 @@ def one_phase_association(time, plateau, k):
     return plateau * (1 - np.exp(-k * time))
 
 
-def kinetic(t, y0, k1):
+def first_kinetic(t, k1):
+    return np.exp(-k1 * t)
+
+
+def second_kinetic(t, y0, k1):
     # simplified system of ODE for SDR system
     I, QT, IT, Q = y0
     k1 = k1
@@ -27,7 +31,7 @@ def kinetic(t, y0, k1):
 
 def kin_fit(t, y0, k1):
     x = solve_ivp(
-        kinetic,
+        second_kinetic,
         (1, max(t) + 10),
         y0,
         t_eval=t,
@@ -38,14 +42,14 @@ def kin_fit(t, y0, k1):
     return x.y[2]
 
 
-def fit(file, test, equation: str, labels: list):
+def overall_fit(file, test, equation: str, labels: list):
     df = pd.read_pickle(file)
     plate_num = file.split("_")[3]
     time_df = df["time (min)"]
     mean_df = df.filter(regex="mean")
     std_df = df.filter(regex="std")
     y0 = [500, 500, 0, 0]
-    if test == "screen":
+    if test == "Screen":
         conditions = [i.split("_")[0] for i in mean_df.columns]
 
     elif test == "Conc":
@@ -88,7 +92,17 @@ def fit(file, test, equation: str, labels: list):
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
-        elif equation == "kinetic":
+        elif equation == "first_kinetic":
+            model = Model(first_kinetic)
+            params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
+            result = model.fit(mean, params, t=time_df, weights=1 / std)
+            params_group_list.extend(
+                [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
+            )
+            if len(labels) != len(params_group_list):
+                raise ValueError("the fit output and the equation does not match")
+
+        elif equation == "sec_kinetic":
             model = Model(kin_fit, independent_vars=["t", "y0"])
             params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
             result = model.fit(mean, params, t=time_df, y0=y0, weights=1 / std)
@@ -117,8 +131,11 @@ def parameter_determination(test):
     one_phase_df_list = list()
     one_phase_result_dict = dict()
 
-    kinetic_df_list = list()
-    kinetic_result_dict = dict()
+    first_kinetic_df_list = list()
+    first_kinetic_result_dict = dict()
+
+    sec_kinetic_df_list = list()
+    sec_kinetic_result_dict = dict()
 
     if test == "Ratio":
         one_phase_list = [
@@ -137,7 +154,7 @@ def parameter_determination(test):
             "k_error",
         ]
 
-    elif test == "Conc" or test == "screen":
+    elif test == "Conc" or test == "Screen":
         one_phase_list = [
             "Plate Number",
             "Trigger type",
@@ -158,7 +175,7 @@ def parameter_determination(test):
 
     for f in glob.glob("*" + test + "*" + "summerized.pkl"):
         print(f)
-        one_phase_params_list, one_phase_results = fit(
+        one_phase_params_list, one_phase_results = overall_fit(
             f, test, "one_phase", one_phase_list
         )
         if not bool(one_phase_result_dict):
@@ -168,22 +185,37 @@ def parameter_determination(test):
         one_phase_df = pd.DataFrame(one_phase_params_list)
         one_phase_df_list.append(one_phase_df)
 
-        kinetic_params_list, kinetic_results = fit(f, test, "kinetic", kinetic_list)
-        if not bool(kinetic_result_dict):
-            kinetic_result_dict = kinetic_results
+        first_kinetic_params_list, first_kinetic_results = overall_fit(
+            f, test, "first_kinetic", kinetic_list
+        )
+        if not bool(first_kinetic_result_dict):
+            first_kinetic_result_dict = first_kinetic_results
         else:
-            kinetic_result_dict.update(kinetic_results)
-        kinetic_df = pd.DataFrame(kinetic_params_list)
-        kinetic_df_list.append(kinetic_df)
+            first_kinetic_result_dict.update(first_kinetic_results)
+        first_kinetic_df = pd.DataFrame(first_kinetic_params_list)
+        first_kinetic_df_list.append(first_kinetic_df)
+
+        sec_kinetic_params_list, sec_kinetic_results = overall_fit(
+            f, test, "sec_kinetic", kinetic_list
+        )
+        if not bool(sec_kinetic_result_dict):
+            sec_kinetic_result_dict = sec_kinetic_results
+        else:
+            sec_kinetic_result_dict.update(sec_kinetic_results)
+        sec_kinetic_df = pd.DataFrame(sec_kinetic_params_list)
+        sec_kinetic_df_list.append(sec_kinetic_df)
 
     one_phase_params_df = pd.concat(one_phase_df_list)
-    kinetic_params_df = pd.concat(kinetic_df_list)
+    first_kinetic_params_df = pd.concat(first_kinetic_df_list)
+    sec_kinetic_params_df = pd.concat(sec_kinetic_df_list)
 
     output = (
         one_phase_params_df,
-        kinetic_params_df,
+        first_kinetic_params_df,
+        sec_kinetic_params_df,
         one_phase_result_dict,
-        kinetic_result_dict,
+        first_kinetic_result_dict,
+        sec_kinetic_result_dict,
     )
 
     return output
@@ -191,7 +223,7 @@ def parameter_determination(test):
 
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
-    test_type = "Ratio"
+    test_type = "Screen"
 
     output = parameter_determination(test_type)
 
@@ -203,20 +235,36 @@ if __name__ == "__main__":
         if not one_phase_params_df.equals(output[0]):
             output[0].to_pickle("{}_one_phase_param.pkl".format(test_type))
             with open("{}_one_phase_result.pkl".format(test_type), "wb") as fp:
-                pickle.dump(output[2], fp)
+                pickle.dump(output[3], fp)
     else:
         output[0].to_pickle("{}_one_phase_param.pkl".format(test_type))
         with open("{}_one_phase_result.pkl".format(test_type), "wb") as fp:
-            pickle.dump(output[2], fp)
+            pickle.dump(output[3], fp)
 
-    if os.path.exists("{}_kinetic_param.pkl".format(test_type)):
-        kine_params_df = pd.read_pickle("{}_kinetic_param.pkl".format(test_type))
-        if not kine_params_df.equals(output[1]):
-            output[1].to_pickle("{}_kinetic_param.pkl".format(test_type))
-            with open("{}_kinetic_result.pkl".format(test_type), "wb") as fp:
-                pickle.dump(output[3], fp)
+    if os.path.exists("{}_first_kinetic_param.pkl".format(test_type)):
+        first_kine_params_df = pd.read_pickle(
+            "{}_first_kinetic_param.pkl".format(test_type)
+        )
+        if not first_kine_params_df.equals(output[1]):
+            output[2].to_pickle("{}_first_kinetic_param.pkl".format(test_type))
+            with open("{}_first_kinetic_result.pkl".format(test_type), "wb") as fp:
+                pickle.dump(output[5], fp)
 
     else:
-        output[1].to_pickle("{}_kinetic_param.pkl".format(test_type))
-        with open("{}_kinetic_result.pkl".format(test_type), "wb") as fp:
-            pickle.dump(output[3], fp)
+        output[2].to_pickle("{}_first_kinetic_param.pkl".format(test_type))
+        with open("{}_first_kinetic_result.pkl".format(test_type), "wb") as fp:
+            pickle.dump(output[5], fp)
+
+    if os.path.exists("{}_second_kinetic_param.pkl".format(test_type)):
+        sec_kine_params_df = pd.read_pickle(
+            "{}_second_kinetic_param.pkl".format(test_type)
+        )
+        if not sec_kine_params_df.equals(output[1]):
+            output[2].to_pickle("{}_second_kinetic_param.pkl".format(test_type))
+            with open("{}_second_kinetic_result.pkl".format(test_type), "wb") as fp:
+                pickle.dump(output[5], fp)
+
+    else:
+        output[2].to_pickle("{}_second_kinetic_param.pkl".format(test_type))
+        with open("{}_second_kinetic_result.pkl".format(test_type), "wb") as fp:
+            pickle.dump(output[5], fp)
