@@ -1,6 +1,7 @@
 import glob
 import os
 import pandas as pd
+from group import group_query, group_generation
 
 
 def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
@@ -140,3 +141,29 @@ def data_average(df, time_list, group_dict, presented_groups, sdata_path):
     norm_combined_data_df.to_pickle(sdata_path)
 
     return
+
+
+if __name__ == "__main__":
+    os.chdir("./dna_sdr/IO/Output/Pickles")
+    T1_lst = list()
+    for fname in glob.glob("*" + "Screen" + "*_normalized.pkl"):
+        print(fname)
+        plate_num = fname.split("_")[3]
+        groups, group_lst = group_query(fname)
+        x = ["{}_{}".format(plate_num, i) for i in group_lst if i != "T1"]
+
+        df = pd.read_pickle(fname)
+        control = groups * 4 + 1
+        sample, presented = group_generation(df, control)
+        presented_dict = dict(zip(x, presented[1:]))
+
+        for k, v in presented_dict.items():
+            name = "./Individual/4WJ_HEX_Screen_{}.pkl".format(k)
+            filtered_df = df.loc[:, v]
+            filtered_df.to_pickle(name)
+
+        T1 = df.loc[:, ["1", "2", "3", "4"]]
+        T1_lst.append(T1)
+
+    T1_df = pd.concat(T1_lst, axis=1, ignore_index=False)
+    T1_df.to_pickle("T1_Screen.pkl")
