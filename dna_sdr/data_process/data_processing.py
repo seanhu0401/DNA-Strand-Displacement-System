@@ -145,6 +145,7 @@ def data_average(df, time_list, group_dict, presented_groups, sdata_path):
 
 if __name__ == "__main__":
     os.chdir("./dna_sdr/IO/Output/Pickles")
+
     T1_lst = list()
     for fname in glob.glob("*" + "Screen" + "*_normalized.pkl"):
         print(fname)
@@ -166,4 +167,12 @@ if __name__ == "__main__":
         T1_lst.append(T1)
 
     T1_df = pd.concat(T1_lst, axis=1, ignore_index=False)
-    T1_df.to_pickle("T1_Screen.pkl")
+    T1_df.to_pickle("./Individual/4WJ_HEX_Screen_T1.pkl")
+
+    os.chdir("./Individual")
+    T1_df = pd.read_pickle("4WJ_HEX_Screen_P0_T1.pkl")
+    name = ["mean", "std"]
+    sum_t1_lst = [T1_df.mean(axis=1), T1_df.std(axis=1)]
+    sum_t1 = dict(zip(name, sum_t1_lst))
+    sum_t1_df = pd.DataFrame(sum_t1)
+    sum_t1_df.to_pickle("4WJ_HEX_Screen_P0_T1_summarized.pkl")
