@@ -1,21 +1,32 @@
+import os
 import pandas as pd
 import numpy as np
-import os
+import scipy.stats as stats
+import itertools as it
 import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
 import statsmodels.stats.multicomp as mc
 import statsmodels.stats.multitest as mt
 from statsmodels.formula.api import ols
-import scipy.stats as stats
-import itertools as it
 
 
-def __array_to_df(data: np.array, group_name: str = "group", value_name: str = "value"):
-    groups = list(range(1, len(data) + 1))
+def __array_to_df(
+    data: np.array,
+    cond_lst: list = [],
+    group_name: str = "group",
+    value_name: str = "value",
+):
+    if not cond_lst:
+        groups = list(range(1, len(data) + 1))
+    else:
+        groups = cond_lst
+
     group_label = ""
     for group in range(len(data)):
-        label = str(groups[group]) * len(data[group])
+        condition = [str(groups[group])]
+        label = condition * len(data[group])
+
         if len(group_label) == 0:
             group_label = label
         else:
@@ -42,18 +53,23 @@ def fence_rule(data: np.array):
     return fence_in, fence_out_count
 
 
-def general_ESD(data, poss_outlier_count: int = 2, alpha: float = 0.05):
+def modified_z_score(data: np.array):
+    mad = stats.median_abs_deviation(data)
+    med = np.median(data)
+    mod_zs = abs(data - med) * 0.6745 / mad
+    return mod_zs
+
+
+def general_ESD(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05):
     def test_stat(data):
         data_mean = np.mean(data)
         data_stdev = np.std(data, ddof=1)
         deviation = abs(data - data_mean)
         max_deviation = max(deviation)
         max_deviation_index = np.argmax(deviation)
-        print(
-            "The current data point tested is {:.3f}".format(data[max_deviation_index])
-        )
+        data_point = data[max_deviation_index]
         stats = max_deviation / data_stdev
-        return stats, max_deviation_index
+        return stats, max_deviation_index, data_point
 
     def critical_value(data, alpha, poss_outlier_count):
         n = len(data)
@@ -73,14 +89,16 @@ def general_ESD(data, poss_outlier_count: int = 2, alpha: float = 0.05):
     index_lst = list()
     max_index = 0
     data_copy = data.copy()
+    data_point_lst = list()
+    test_stats_lst = list()
+    critical_value_lst = list()
 
     for iter in range(1, poss_outlier_count + 1):
-        print("Test {}".format(iter))
-        stat, index = test_stat(data_copy)
+        stat, index, point = test_stat(data_copy)
         crit = critical_value(data_copy, alpha, poss_outlier_count)
-        print("Test statistics (R{}): {:.3f}".format(iter, stat))
-        print("Critical value (λ{}): {:.3f}".format(iter, crit))
-        print()
+        data_point_lst.append(point)
+        test_stats_lst.append(stat)
+        critical_value_lst.append(crit)
 
         if stat > crit:
             max_index = iter
@@ -88,13 +106,69 @@ def general_ESD(data, poss_outlier_count: int = 2, alpha: float = 0.05):
         data_copy = np.delete(data_copy, index)
         index_lst.append(index)
 
-    print("There are {} possible outliers in the data".format(max_index))
+    result_table = pd.DataFrame(
+        {
+            "Data point": data_point_lst,
+            "Test statistics (Ri)": test_stats_lst,
+            "Critical value (λi)": critical_value_lst,
+        }
+    )
+    print(result_table)
+    print(
+        "There are {} possible outliers in the data based on the general ESD test".format(
+            max_index
+        )
+    )
     outlier_index = index_lst[0:max_index]
 
     for index in outlier_index:
         data = np.delete(data, index)
 
     return data
+
+
+def outlier_detection(data: list, analysis_target: list):
+    fence_lst = list()
+    post_gesd_lst = list()
+    for sample in range(len(data)):
+        print(analysis_target[sample])
+        sample = data[sample]
+        fig = plt.figure(figsize=(10, 10))
+        ax = fig.add_subplot(111)
+        normality_plot, stat = stats.probplot(sample, plot=plt, rvalue=True)
+        ax.set_title("Probability plot of sample", fontsize=20)
+        plt.show()
+        print("Shapiro test for the data")
+        w, pvalue = stats.shapiro(sample)
+        print("The W stats is {:.4f}".format(w))
+        p_value_printout(pvalue)
+        print("")
+        fence_in, out_count = fence_rule(sample)
+        print(
+            "There are {} possilbe outliers based on the fence rule (1.5*IQR)".format(
+                out_count
+            )
+        )
+        print("")
+        if out_count != 0:
+            w, pvalue = stats.shapiro(fence_in)
+            print("Shapiro test after removal of potential outliers with fence rule")
+            print("The W stats is {:.4f}".format(w))
+            p_value_printout(pvalue)
+            print("")
+        print("General ESD Test for outlier")
+        data_post_gesd = general_ESD(sample, 5, 0.05)
+        print("")
+        if not np.array_equiv(data_post_gesd, sample):
+            w, pvalue = stats.shapiro(data_post_gesd)
+            print("Shapiro test after removal of potential outliers with general ESD")
+            print("The W stats is {:.4f}".format(w))
+            p_value_printout(pvalue)
+            print("")
+        fence_lst.append(fence_in)
+        post_gesd_lst.append(data_post_gesd)
+
+    return fence_lst, post_gesd_lst
 
 
 def p_value_printout(p_value, alpha: float = 0.05):
@@ -115,21 +189,78 @@ def p_value_printout(p_value, alpha: float = 0.05):
     return
 
 
-def anova_table(aov):
-    aov["mean_sq"] = aov[:]["sum_sq"] / aov[:]["df"]
+def anova_test(
+    data: pd.DataFrame,
+    parameter: list,
+    model: str,
+    dependent: str,
+    independent: str = "plate_loc",
+):
+    def anova_table(aov):
+        aov["mean_sq"] = aov[:]["sum_sq"] / aov[:]["df"]
 
-    aov["eta_sq"] = aov[:-1]["sum_sq"] / sum(aov["sum_sq"])
+        aov["eta_sq"] = aov[:-1]["sum_sq"] / sum(aov["sum_sq"])
 
-    aov["omega_sq"] = (aov[:-1]["sum_sq"] - (aov[:-1]["df"] * aov["mean_sq"][-1])) / (
-        sum(aov["sum_sq"]) + aov["mean_sq"][-1]
+        aov["omega_sq"] = (
+            aov[:-1]["sum_sq"] - (aov[:-1]["df"] * aov["mean_sq"][-1])
+        ) / (sum(aov["sum_sq"]) + aov["mean_sq"][-1])
+
+        cols = ["sum_sq", "df", "mean_sq", "F", "PR(>F)", "eta_sq", "omega_sq"]
+        aov = aov[cols]
+        return aov
+
+    print("")
+    model_fit = ols(model, data=data).fit()
+    aov = sm.stats.anova_lm(model_fit, typ=2)
+    aov_table = anova_table(aov)
+    print(aov_table)
+
+    print("")
+    print("Shapiro test for normality for the ANOVA residual")
+    w, pvalue = stats.shapiro(model_fit.resid)
+    print("The W stats is {:.4f}".format(w))
+    p_value_printout(pvalue)
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111)
+    normality_plot, stat = stats.probplot(model_fit.resid, plot=plt, rvalue=True)
+    ax.set_title("Probability plot of model's residuals", fontsize=20)
+    plt.show()
+
+    print("")
+    print("Levene test for equal variance")
+    levene = stats.levene(*parameter)
+    print("Test statistics is {:.4f}".format(levene[0]))
+    p_value_printout(levene[-1])
+
+    print("")
+    if aov["PR(>F)"][0] < 0.05:
+        comp = mc.MultiComparison(data[dependent], data[independent])
+        post_hoc_res = comp.tukeyhsd()
+        print(post_hoc_res.summary())
+        print("")
+
+    return
+
+
+def kw_test(data, parameter: str, alpha: float = 0.05):
+    print("Kruskal-Wallis H-test")
+    h, p_value = stats.kruskal(*data)
+    result = pd.DataFrame(
+        {
+            "test type": "Kruskal-Wallis H-test",
+            "parameter": parameter,
+            "p-value": "{:.3e}".format(p_value),
+            "Reject Null?": p_value < alpha,
+        },
+        index=[0],
     )
-
-    cols = ["sum_sq", "df", "mean_sq", "F", "PR(>F)", "eta_sq", "omega_sq"]
-    aov = aov[cols]
-    return aov
+    return result, p_value
 
 
-def dunn_test(data, adj_method: str = "hs"):
+def dunn_test(data, conditions: list, adj_method: str = "hs"):
+    print("Dunn's Test")
+
     def omega(frame, group1, group2, tie_sum):
         total_obs = len(frame)
         data_1 = frame[frame["group"] == str(group1)]["value"]
@@ -145,8 +276,7 @@ def dunn_test(data, adj_method: str = "hs"):
         mean_rank2 = mean_rank_df[mean_rank_df["group"] == str(group2)]["rank"].iloc[0]
         return mean_rank1 - mean_rank2
 
-    frame, groups = __array_to_df(data)
-
+    frame, groups = __array_to_df(data, conditions)
     frame["rank"] = frame["value"].rank()
     frame_rank_mean = frame.groupby("group")["rank"].mean().reset_index()
     counts = frame.groupby("rank")["value"].agg("count").reset_index()
@@ -174,13 +304,15 @@ def dunn_test(data, adj_method: str = "hs"):
     )
 
     result_table["Adjusted p-value"] = result_table["Adjusted p-value"].map(
-        "{:.4f}".format
+        "{:.3e}".format
     )
 
     return result_table
 
 
-def conover_iman_test(data, adj_method: str = "hs"):
+def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
+    print("Conover-Iman test")
+
     def test_stats(frame, groups, h_corr, s2, group1, group2):
         rank_mean = frame.groupby("group")["rank"].mean().reset_index()
         mean_rank1 = rank_mean[rank_mean["group"] == str(group1)]["rank"].iloc[0]
@@ -199,7 +331,7 @@ def conover_iman_test(data, adj_method: str = "hs"):
         return t
 
     h_corr, _ = stats.kruskal(*data)
-    frame, groups = __array_to_df(data)
+    frame, groups = __array_to_df(data, conditions)
     total_obs = len(frame)
     frame["rank"] = frame["value"].rank()
     counts = frame.groupby("rank")["value"].agg("count").reset_index()
@@ -234,136 +366,110 @@ def conover_iman_test(data, adj_method: str = "hs"):
     )
 
     result_table["Adjusted p-value"] = result_table["Adjusted p-value"].map(
-        "{:.4f}".format
+        "{:.3e}".format
     )
+
     return result_table
 
 
-if __name__ == "__main__":
-    os.chdir("dna_sdr/pickles/")
-    fname = "indiviual_Screen_one_phase_param.pkl"
+def data_dist_plot(data: pd.DataFrame, mode: str):
+    fig = plt.figure(figsize=(10, 10))
+
+    if mode == "one_phase":
+        ax1 = fig.add_subplot(121)
+        ax1 = sns.boxplot(
+            x="plate_loc", y="rate", data=data, color="#99c2a2", width=0.2
+        )
+        ax1 = sns.swarmplot(x="plate_loc", y="rate", data=data, color="#7d0013")
+
+        ax2 = fig.add_subplot(122)
+        ax2 = sns.boxplot(
+            x="plate_loc", y="plateau", data=data, color="#99c2a2", width=0.2
+        )
+        ax2 = sns.swarmplot(x="plate_loc", y="plateau", data=data, color="#7d0013")
+
+    else:
+        ax1 = fig.add_subplot(111)
+        ax1 = sns.boxplot(
+            x="plate_loc", y="k_rate", data=data, color="#99c2a2", width=0.2
+        )
+        ax1 = sns.swarmplot(x="plate_loc", y="k_rate", data=data, color="#7d0013")
+
+    plt.show()
+    return
+
+
+def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
+    if mode == "one_phase":
+        rate_lst = list()
+        plateau_lst = list()
+        for target in analysis_target:
+            target_df = data[data["plate_loc"] == target]
+            rate_lst.append(target_df["rate"].to_numpy())
+            plateau_lst.append(target_df["plateau"].to_numpy())
+        return rate_lst, plateau_lst
+
+    else:
+        rate_lst = list()
+        for target in analysis_target:
+            target_df = data[data["plate_loc"] == target]
+            rate_lst.append(target_df["k_rate"].to_numpy())
+        return rate_lst
+
+
+def main(analysis_target: list, mode: str):
+    fname = "indiviual_Screen_{}_param.pkl".format(mode)
     df = pd.read_pickle(fname)
     df.rename({"Condition": "plate_loc"}, axis=1, inplace=True)
     trig_info = pd.read_pickle("trig_info.pkl")
     trig_df = pd.merge(df, trig_info, on="plate_loc")
 
-    # Set as future input for if specify plate/well combo
-    read_lst = ["P0_A1", "P2_A5", "P2_A6"]
     trig_df.set_index("plate_loc", inplace=True)
-    same_loc = trig_df.loc[read_lst]
-    same_loc.reset_index(inplace=True)
+    analysis_df = trig_df.loc[analysis_target]
+    analysis_df.reset_index(inplace=True)
+    return analysis_df
 
-    """
-    Graphical repersentation of the data distribution using boxplot and catagorical scatter plot
-    (swarmplot) using seaborn package.
-    """
-    fig = plt.figure(figsize=(10, 10))
-    ax1 = fig.add_subplot(121)
-    ax1 = sns.boxplot(
-        x="plate_loc", y="rate", data=same_loc, color="#99c2a2", width=0.2
-    )
-    ax1 = sns.swarmplot(x="plate_loc", y="rate", data=same_loc, color="#7d0013")
-    ax2 = fig.add_subplot(122)
-    ax2 = sns.boxplot(
-        x="plate_loc", y="plateau", data=same_loc, color="#99c2a2", width=0.2
-    )
-    ax2 = sns.swarmplot(x="plate_loc", y="plateau", data=same_loc, color="#7d0013")
-    plt.show()
 
-    cond = list(set([i for i in same_loc["plate_loc"]]))
-    plateau_lst = list()
-    rate_lst = list()
-    for condition in cond:
-        cond_df = same_loc[same_loc["plate_loc"] == condition]
-        plateau_lst.append(cond_df["plateau"].to_numpy())
-        rate_lst.append(cond_df["rate"].to_numpy())
+if __name__ == "__main__":
+    os.chdir("dna_sdr/pickles/")
+    # df = pd.read_pickle("Screen_first_kinetic_param.pkl")
+    # print(df)
 
-    """
-    Outlier detection using fence rule (1.5*IQR) and generalized ESD test.
-    Shapiro test was also used to test the normality of the data set before and after
-    the removal of outliers
-    """
-    for sample in range(len(plateau_lst)):
-        print(cond[sample])
-        sample_plateau = plateau_lst[sample]
-        print("Shapiro test for the data")
-        w, pvalue = stats.shapiro(sample_plateau)
-        print("The W stats is {:.4f}".format(w))
-        p_value_printout(pvalue)
-        print("")
-        fence_in, out_count = fence_rule(sample_plateau)
-        print(
-            "There are {} possilbe outliers based on the fence rule (1.5*IQR)".format(
-                out_count
-            )
-        )
-        if out_count != 0:
-            w, pvalue = stats.shapiro(fence_in)
-            print("Shapiro test after removal of potential outliers with fence rule")
-            print("The W stats is {:.4f}".format(w))
-            p_value_printout(pvalue)
-            print("")
-        print("General ESD Test for outlier")
-        data_postESD = general_ESD(sample_plateau, 5, 0.05)
-        print("")
-        if not (np.array_equiv(data_postESD, fence_in)) or not (
-            np.array_equiv(data_postESD, sample_plateau)
-        ):
-            w, pvalue = stats.shapiro(data_postESD)
-            print("Shapiro test after removal of potential outliers with general ESD")
-            print("The W stats is {:.4f}".format(w))
-            p_value_printout(pvalue)
-            print("")
+    read_lst = ["P0_A1", "P2_A5", "P2_A6"]
+    mode = "first_kinetic"
+    same_loc = main(read_lst, mode)
+    print(same_loc)
 
-    """
-    ANOVA testing with normality plot, Shapiro test (normality test), 
-    and Levene test (equal variance test) for assumpition testing.
-    """
-    print("")
-    model = ols("rate ~ C(plate_loc)", data=same_loc).fit()
-    aov = sm.stats.anova_lm(model, typ=2)
-    aov_table = anova_table(aov)
-    print(aov_table)
+    # """
+    # Graphical repersentation of the data distribution using boxplot and catagorical scatter plot
+    # (swarmplot) using seaborn package.
+    # """
+    # data_dist_plot(same_loc)
+    # parameter_lst = parameter_array(same_loc, mode, read_lst)
+    # if len(parameter_lst) == 2:
+    #     rate_lst, plateau_lst = parameter_lst
 
-    print("")
-    print("Shapiro test for normality for the ANOVA residual")
-    w, pvalue = stats.shapiro(model.resid)
-    print("The W stats is {:.4f}".format(w))
-    p_value_printout(pvalue)
+    # """
+    # Outlier detection using fence rule (1.5*IQR) and generalized ESD test.
+    # Shapiro test was also used to test the normality of the data set before and after
+    # the removal of outliers. Generalized ESD test assumes the samples are approx.
+    # normally distributed.
+    # """
+    # fence_in, post_gesd = outlier_detection(plateau_lst, read_lst)
 
-    fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111)
+    # """
+    # ANOVA testing with normality plot, Shapiro test (normality test),
+    # and Levene test (equal variance test) for assumpition testing.
+    # """
+    # model = "plateau ~ C(plate_loc)"
+    # anova_test(same_loc, plateau_lst, model, "plateau")
 
-    normality_plot, stat = stats.probplot(model.resid, plot=plt, rvalue=True)
-    ax.set_title("Probability plot of model's residuals", fontsize=20)
-    plt.show()
-
-    print("")
-
-    print("Levene test for equal variance")
-    levene = stats.levene(
-        same_loc[same_loc["plate_loc"] == "P0_A1"]["rate"],
-        same_loc[same_loc["plate_loc"] == "P2_A5"]["rate"],
-        same_loc[same_loc["plate_loc"] == "P2_A6"]["rate"],
-    )
-    print("Test statistics is {:.4f}".format(levene[0]))
-    p_value_printout(levene[-1])
-
-    print("")
-    comp = mc.MultiComparison(same_loc["rate"], same_loc["plate_loc"])
-    post_hoc_res = comp.tukeyhsd()
-    print(post_hoc_res.summary())
-    print("")
-
-    """
-    Kruskal-Wallis H-test (non-parametric version of ANOVA) in case when the
-    ANOVA assumption was not satisified. The data were also tested using 
-    Kolmogorov-Smirnov test for goodness of fit to check if the samples follows
-    a specific population distribution (i.e., Student's T distribution). 
-    If the data follow the Student's T distribution, Conover-Iman test 
-    will be used for the post-hoc analysis, else Dunn's test will be used.
-    """
-    print("Kruskal-Wallis H-test")
-    h, p_value = stats.kruskal(*plateau_lst)
-    print("the H-statistics is {:.3f}".format(h))
-    p_value_printout(p_value)
+    # """
+    # Kruskal-Wallis H-test (non-parametric version of ANOVA) in case when the
+    # ANOVA assumption was not satisified.
+    # """
+    # result, p_value = kw_test(plateau_lst, "plateau")
+    # print(result)
+    # if p_value < 0.05:
+    #     print(dunn_test(plateau_lst, read_lst))
+    #     print(conover_iman_test(plateau_lst, read_lst))

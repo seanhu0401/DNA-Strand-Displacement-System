@@ -76,11 +76,12 @@ def ind_fit(file, test, equation: str, labels: list):
 
         elif equation == "first_kinetic":
             model = Model(first_kinetic)
-            params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
+            params = model.make_params(k1=dict(value=1e-2, min=10e-9, max=10e3))
             result = model.fit(trial, params, t=time_lst)
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
+            # print(result.rsquared)
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
@@ -91,6 +92,7 @@ def ind_fit(file, test, equation: str, labels: list):
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
+            print(result.rsquared)
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
@@ -358,28 +360,28 @@ if __name__ == "__main__":
                 "indiviual_{}_first_kinetic_param.pkl".format(test_type)
             )
             if not first_kine_params_df.equals(output[1]):
-                output[2].to_pickle(
+                output[1].to_pickle(
                     "indiviual_{}_first_kinetic_param.pkl".format(test_type)
                 )
                 with open(
                     "indiviual_{}_first_kinetic_result.pkl".format(test_type), "wb"
                 ) as fp:
-                    pickle.dump(output[5], fp)
+                    pickle.dump(output[4], fp)
 
         else:
-            output[2].to_pickle(
+            output[1].to_pickle(
                 "indiviual_{}_first_kinetic_param.pkl".format(test_type)
             )
             with open(
                 "indiviual_{}_first_kinetic_result.pkl".format(test_type), "wb"
             ) as fp:
-                pickle.dump(output[5], fp)
+                pickle.dump(output[4], fp)
 
         if os.path.exists("indiviual_{}_second_kinetic_param.pkl".format(test_type)):
             sec_kine_params_df = pd.read_pickle(
                 "indiviual_{}_second_kinetic_param.pkl".format(test_type)
             )
-            if not sec_kine_params_df.equals(output[1]):
+            if not sec_kine_params_df.equals(output[2]):
                 output[2].to_pickle(
                     "indiviual_{}_second_kinetic_param.pkl".format(test_type)
                 )
@@ -418,12 +420,12 @@ if __name__ == "__main__":
             if not first_kine_params_df.equals(output[1]):
                 output[2].to_pickle("{}_first_kinetic_param.pkl".format(test_type))
                 with open("{}_first_kinetic_result.pkl".format(test_type), "wb") as fp:
-                    pickle.dump(output[5], fp)
+                    pickle.dump(output[4], fp)
 
         else:
             output[2].to_pickle("{}_first_kinetic_param.pkl".format(test_type))
             with open("{}_first_kinetic_result.pkl".format(test_type), "wb") as fp:
-                pickle.dump(output[5], fp)
+                pickle.dump(output[4], fp)
 
         if os.path.exists("{}_second_kinetic_param.pkl".format(test_type)):
             sec_kine_params_df = pd.read_pickle(

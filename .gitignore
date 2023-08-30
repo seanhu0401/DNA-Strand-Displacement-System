@@ -12,3 +12,4 @@ pickles
 *.pkl
 *.csv
 image
+*.ipynb
