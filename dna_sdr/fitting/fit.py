@@ -31,7 +31,7 @@ def first_kin_fit(t, y0, k1):
         t_eval=t,
         args=(k1,),
         rtol=1e-9,
-        method="LSODA",
+        # method="LSODA",
     )
     return x.y[-1]
 
@@ -58,7 +58,7 @@ def sec_kin_fit(t, y0, k1):
         t_eval=t,
         args=(k1,),
         rtol=1e-9,
-        method="LSODA",
+        # method="LSODA",
     )
     return x.y[2]
 
