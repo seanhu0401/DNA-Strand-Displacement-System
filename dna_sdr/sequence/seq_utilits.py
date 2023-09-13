@@ -6,6 +6,20 @@ from more_itertools import consecutive_groups
 
 comp_dict = {"t": 1, "g": 2, "c": 3, "a": 4}
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
+mismatch_type_dict = {
+    "a-t": 1,
+    "a-g": 2,
+    "a-c": 3,
+    "t-a": 4,
+    "t-c": 5,
+    "t-g": 6,
+    "c-a": 7,
+    "c-t": 8,
+    "c-g": 9,
+    "g-t": 10,
+    "g-c": 11,
+    "g-a": 12,
+}
 
 
 def find_range(iterable):
@@ -92,7 +106,8 @@ def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
         elif base != base_at_loc and counter < (trig2.base_count - new_ob):
             location = trig1.base_count - counter
             mismatch_loc.append(location)
-            mismatch_type.append("{}-{}".format(base_at_loc, base))
+            mismatch_str = "{}-{}".format(base_at_loc, base)
+            mismatch_type.append(mismatch_type_dict[mismatch_str])
             mismatch += 1
             if location <= (new_tb + new_ob):
                 if location > new_ob:
