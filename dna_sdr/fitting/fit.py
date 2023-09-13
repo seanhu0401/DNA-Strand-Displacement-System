@@ -11,8 +11,29 @@ def one_phase_association(time, plateau, k):
     return plateau * (1 - np.exp(-k * time))
 
 
-def first_kinetic(t, k1):
-    return np.exp(-k1 * t)
+def first_kinetic(t, y0, k1):
+    # simplified system of ODE for SDR system
+    I, Q = y0
+    k1 = k1
+
+    # the model equations
+    dIdt = -k1 * I
+    dQdt = k1 * I
+    ode = [dIdt, dQdt]
+    return ode
+
+
+def first_kin_fit(t, y0, k1):
+    x = solve_ivp(
+        first_kinetic,
+        (1, max(t) + 10),
+        y0,
+        t_eval=t,
+        args=(k1,),
+        rtol=1e-9,
+        # method="LSODA",
+    )
+    return x.y[-1]
 
 
 def second_kinetic(t, y0, k1):
@@ -29,7 +50,7 @@ def second_kinetic(t, y0, k1):
     return ode
 
 
-def kin_fit(t, y0, k1):
+def sec_kin_fit(t, y0, k1):
     x = solve_ivp(
         second_kinetic,
         (1, max(t) + 10),
@@ -37,7 +58,7 @@ def kin_fit(t, y0, k1):
         t_eval=t,
         args=(k1,),
         rtol=1e-9,
-        method="LSODA",
+        # method="LSODA",
     )
     return x.y[2]
 
@@ -46,18 +67,19 @@ def ind_fit(file, test, equation: str, labels: list):
     df = pd.read_pickle(file)
     name = file.split(".")[0]
     cond = "_".join(name.split("_")[-2:])
-    # plate_num = name.split("_")[-2]
-    # cond = name.split("_")[-1]
 
     time_lst = time_list_generation(60)
-    y0 = [500, 500, 0, 0]
+    if equation == "first_kinetic":
+        y0 = [500, 0]
+    elif equation == "sec_kinetic":
+        y0 = [500, 500, 0, 0]
 
     params_list = list()
     full_result_dict = dict()
 
     for count in range(len(df.columns)):
         params_group_list = [cond]
-        trial = df.iloc[:, count]
+        trial = df.iloc[:, count] * 500
         if equation == "one_phase":
             model = Model(one_phase_association)
             params = model.make_params(plateau=250, k=0.01)
@@ -75,24 +97,22 @@ def ind_fit(file, test, equation: str, labels: list):
                 raise ValueError("the fit output and the equation does not match")
 
         elif equation == "first_kinetic":
-            model = Model(first_kinetic)
+            model = Model(first_kin_fit, independent_vars=["t", "y0"])
             params = model.make_params(k1=dict(value=1e-2, min=10e-9, max=10e3))
-            result = model.fit(trial, params, t=time_lst)
+            result = model.fit(trial, params, t=time_lst, y0=y0)
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
-            # print(result.rsquared)
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
         elif equation == "sec_kinetic":
-            model = Model(kin_fit, independent_vars=["t", "y0"])
+            model = Model(sec_kin_fit, independent_vars=["t", "y0"])
             params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
             result = model.fit(trial, params, t=time_lst, y0=y0)
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
-            print(result.rsquared)
             if len(labels) != len(params_group_list):
                 raise ValueError("the fit output and the equation does not match")
 
@@ -113,7 +133,11 @@ def overall_fit(file, test, equation: str, labels: list):
     time_df = df["time (min)"]
     mean_df = df.filter(regex="mean")
     std_df = df.filter(regex="std")
-    y0 = [500, 500, 0, 0]
+    if equation == "first_kinetic":
+        y0 = [500, 0]
+    elif equation == "sec_kinetic":
+        y0 = [500, 500, 0, 0]
+
     if test == "Screen":
         conditions = [i.split("_")[0] for i in mean_df.columns]
 
@@ -158,9 +182,9 @@ def overall_fit(file, test, equation: str, labels: list):
                 raise ValueError("the fit output and the equation does not match")
 
         elif equation == "first_kinetic":
-            model = Model(first_kinetic)
-            params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
-            result = model.fit(mean, params, t=time_df, weights=1 / std)
+            model = Model(first_kin_fit, independent_vars=["t", "y0"])
+            params = model.make_params(k1=dict(value=1e-2, min=10e-9, max=10e3))
+            result = model.fit(mean, params, t=time_df, y0=y0, weights=1 / std)
             params_group_list.extend(
                 [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
             )
@@ -168,7 +192,7 @@ def overall_fit(file, test, equation: str, labels: list):
                 raise ValueError("the fit output and the equation does not match")
 
         elif equation == "sec_kinetic":
-            model = Model(kin_fit, independent_vars=["t", "y0"])
+            model = Model(sec_kin_fit, independent_vars=["t", "y0"])
             params = model.make_params(k1=dict(value=1e-5, min=10e-9, max=10e1))
             result = model.fit(mean, params, t=time_df, y0=y0, weights=1 / std)
             params_group_list.extend(
