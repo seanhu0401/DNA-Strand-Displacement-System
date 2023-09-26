@@ -1,21 +1,15 @@
 """
 The data input should have the response column to be the last column.
 """
-import math
 import os
 import itertools as it
 from functools import reduce
-import numpy as np
 import pandas as pd
-
-# import scipy.stats as stats
-
 
 os.chdir("./")
 FNAME = "dna_sdr/stats/HigginsABC.art.csv"  # 3-way sample data w/ result
 df_full = pd.read_csv(FNAME)
 df = df_full.loc[:, ["A", "B", "C", "Y"]].copy()
-# print(df)
 
 """
 2-way sample data
@@ -32,17 +26,6 @@ factors = list(df.columns)[:-1]
 n_ways = len(factors)
 levels_lst = [list(set(df[factor])) for factor in factors]
 level_combo = list(it.product(*levels_lst))
-
-# term_lst = [0]
-# for i in range(n_ways):
-#     term = int(
-#         math.factorial(n_ways) / (math.factorial(i) * math.factorial(n_ways - i))
-#     )
-#     if i == 0:
-#         term_loc = term
-#     else:
-#         term_loc = term_lst[-1] + term
-#     term_lst.append(term_loc)
 
 level_full_lst = []
 for index, combo_set in enumerate(level_combo):
@@ -82,6 +65,7 @@ cell_mean = condition_mean_df[str(factor_full_lst[0])]
 residual = resp - cell_mean
 
 aligned_df = df.copy()
+aligned_column_name = []
 for factor_combo in factor_combo_lst:
     n_way_comp = len(factor_combo[0])
     for factor in factor_combo:
@@ -96,4 +80,12 @@ for factor_combo in factor_combo_lst:
         VALUE += mean
     else:
         VALUE -= mean
+    aligned_column_name.append(f"Aligned {factor_combo[0]}")
     aligned_df[f"Aligned {factor_combo[0]}"] = VALUE + residual
+
+rank_column_name = [name.replace("Aligned", "Rank") for name in aligned_column_name]
+
+rank_df = aligned_df[aligned_column_name].rank()
+rank_df.rename(dict(zip(aligned_column_name, rank_column_name)), axis=1, inplace=True)
+final_df = pd.concat([aligned_df, rank_df], axis=1)
+print(final_df)
