@@ -33,7 +33,7 @@ n_ways = len(factors)
 levels_lst = [list(set(df[factor])) for factor in factors]
 level_combo = list(it.product(*levels_lst))
 
-term_lst = []
+term_lst = [0]
 for i in range(n_ways):
     term = int(
         math.factorial(n_ways) / (math.factorial(i) * math.factorial(n_ways - i))
@@ -50,7 +50,6 @@ for index, combo_set in enumerate(level_combo):
     for j in reversed(range(1, len(combo_set))):
         combo_lst.extend(list(it.combinations(combo_set, r=j)))
     level_full_lst.append(combo_lst)
-
 
 factor_full_lst = [tuple(factors)]
 for i in reversed(range(1, len(factors))):
@@ -86,13 +85,8 @@ for factor_level in level_full_lst:
 test_set = full_est_effect_mean_lst[0]
 param_array = np.zeros(len(test_set))
 
-for index, _ in enumerate(term_lst):
-    if index - 1 < 0:
-        param_array[0] = test_set[0]
-    else:
-        param_array[term_lst[index - 1]] = sum(
-            test_set[term_lst[index - 1] : term_lst[index]]
-        )
+for index in range(len(term_lst) - 1):
+    param_array[term_lst[index]] = sum(test_set[term_lst[index] : term_lst[index + 1]])
 
 for index, result in enumerate(test_set):
     matrix[0:index, index] = param_array[index]
@@ -100,25 +94,17 @@ for index, result in enumerate(test_set):
 
 # TODO: Try to reduce the nested loop
 value_lst = []
-for index, _ in enumerate(term_lst):
+for index in range(len(term_lst) - 1):
     ways = n_ways - index
-    if index == 0:
-        sub_matrix = [matrix[index]]
-    else:
-        sub_matrix = matrix[term_lst[index - 1] : term_lst[index]]
-
+    sub_matrix = matrix[term_lst[index] : term_lst[index + 1]]
     for array in sub_matrix:
-        VALUE = 0
         COUNTER = 1
         for h in range(index, n_ways):
-            if VALUE == 0 and array[0] != 0:
-                VALUE = array[0]
-            elif VALUE == 0 and array[0] == 0:
-                VALUE = sum(array[: term_lst[h]])
-
-            if COUNTER % 2 != 0 and h < (n_ways - 1):
+            if COUNTER == 1:
+                VALUE = sum(array[: term_lst[h + 1]])
+            elif COUNTER % 2 == 0 and h < n_ways:
                 VALUE -= sum(array[term_lst[h] : term_lst[h + 1]])
-            elif COUNTER % 2 == 0 and h < (n_ways - 1):
+            elif COUNTER % 2 != 0 and h < n_ways:
                 VALUE += sum(array[term_lst[h] : term_lst[h + 1]])
             else:
                 pass
@@ -131,8 +117,8 @@ for index, _ in enumerate(term_lst):
 
         value_lst.append(VALUE)
 
-# value_test_lst = [-1.25, -130.25, -124.75, -118.25, -10.25, -4.5, -5.0]
 # print(value_lst)
+# value_test_lst = [-1.25, -130.25, -124.75, -118.25, -10.25, -4.5, -5.0]
 # print(value_test_lst == value_lst)
 
 # df_lst = list()
