@@ -1,8 +1,15 @@
+"""
+General statistical analysis functions
+
+    Functions:
+       __array_to_df(data, cond_lst, group_name, value_name) 
+"""
+
 import os
+import itertools as it
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
-import itertools as it
 import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
@@ -13,54 +20,117 @@ from statsmodels.formula.api import ols
 
 def __array_to_df(
     data: np.array,
-    cond_lst: list = [],
+    condition: list,
     group_name: str = "group",
     value_name: str = "value",
 ):
-    if not cond_lst:
+    """
+    A hidden function that converts numpy array input into a pandas dataframe
+
+    Parameters
+    ----------
+    data : np.array
+
+    condition : list
+        A list of condition presented
+    group_name : str
+        The name of the group array with default name of "group"
+    value_name : str
+        The name of the value array with default name of "value"
+
+    Returns
+    -------
+    pd.DataFrame
+
+    """
+
+    if not condition:
         groups = list(range(1, len(data) + 1))
     else:
-        groups = cond_lst
+        groups = condition
 
     group_label = ""
-    for group in range(len(data)):
-        condition = [str(groups[group])]
-        label = condition * len(data[group])
-
+    for index, group in enumerate(data):
+        condition = [str(groups[index])]
+        label = condition * len(group)
         if len(group_label) == 0:
             group_label = label
         else:
             group_label = group_label + label
 
     group_label_lst = list(group_label)
-    comb_data = list()
+    comb_data = []
     for i in data:
         comb_data.extend(i)
 
-    frame = pd.DataFrame(
-        {"{}".format(group_name): group_label_lst, "{}".format(value_name): comb_data}
-    )
+    frame = pd.DataFrame({f"{group_name}": group_label_lst, f"{value_name}": comb_data})
     return frame, groups
 
 
 def fence_rule(data: np.array):
-    Q1, Q3 = np.quantile(data, [0.25, 0.75], method="median_unbiased")
-    IQR = stats.iqr(data, interpolation="median_unbiased")
-    upper = Q3 + 1.5 * IQR
-    lower = Q1 - 1.5 * IQR
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+    Returns
+    -------
+    fence_in : np.array
+
+    fence_out_count : int
+
+    """
+
+    q_1, q_3 = np.quantile(data, [0.25, 0.75], method="median_unbiased")
+    iqr = stats.iqr(data, interpolation="median_unbiased")
+    upper = q_3 + 1.5 * iqr
+    lower = q_1 - 1.5 * iqr
     fence_in = data[(lower <= data) & (upper >= data)]
     fence_out_count = len(data) - len(fence_in)
     return fence_in, fence_out_count
 
 
 def modified_z_score(data: np.array):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     mad = stats.median_abs_deviation(data)
     med = np.median(data)
     mod_zs = abs(data - med) * 0.6745 / mad
     return mod_zs
 
 
-def general_ESD(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05):
+def general_esd(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+    poss_outlier_count : int
+
+    alpha : float
+
+    Returns
+    -------
+    data : np.array
+
+    """
+
     def test_stat(data):
         data_mean = np.mean(data)
         data_stdev = np.std(data, ddof=1)
@@ -68,16 +138,16 @@ def general_ESD(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05
         max_deviation = max(deviation)
         max_deviation_index = np.argmax(deviation)
         data_point = data[max_deviation_index]
-        stats = max_deviation / data_stdev
-        return stats, max_deviation_index, data_point
+        t_stats = max_deviation / data_stdev
+        return t_stats, max_deviation_index, data_point
 
-    def critical_value(data, alpha, poss_outlier_count):
-        n = len(data)
-        df = n - 2
-        p = 1 - (alpha / (2 * n))
-        t_distribution = stats.t.ppf(p, df)
-        num = (n - 1) * t_distribution
-        deno = np.sqrt((df + t_distribution**2) * n)
+    def critical_value(data, alpha):
+        sample_count = len(data)
+        degree_freedom = sample_count - 2
+        p_value = 1 - (alpha / (2 * sample_count))
+        t_distribution = stats.t.ppf(p_value, degree_freedom)
+        num = (sample_count - 1) * t_distribution
+        deno = np.sqrt((degree_freedom + t_distribution**2) * sample_count)
         crit_value = num / deno
         return crit_value
 
@@ -86,25 +156,25 @@ def general_ESD(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05
     except AttributeError:
         pass
 
-    index_lst = list()
+    index_lst = []
     max_index = 0
     data_copy = data.copy()
-    data_point_lst = list()
-    test_stats_lst = list()
-    critical_value_lst = list()
+    data_point_lst = []
+    test_stats_lst = []
+    critical_value_lst = []
 
-    for iter in range(1, poss_outlier_count + 1):
-        stat, index, point = test_stat(data_copy)
-        crit = critical_value(data_copy, alpha, poss_outlier_count)
+    for position in range(1, poss_outlier_count + 1):
+        t_stat, position, point = test_stat(data_copy)
+        crit = critical_value(data_copy, alpha)
         data_point_lst.append(point)
-        test_stats_lst.append(stat)
+        test_stats_lst.append(t_stat)
         critical_value_lst.append(crit)
 
-        if stat > crit:
-            max_index = iter
+        if t_stat > crit:
+            max_index = position
 
-        data_copy = np.delete(data_copy, index)
-        index_lst.append(index)
+        data_copy = np.delete(data_copy, position)
+        index_lst.append(position)
 
     result_table = pd.DataFrame(
         {
@@ -115,54 +185,62 @@ def general_ESD(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05
     )
     print(result_table)
     print(
-        "There are {} possible outliers in the data based on the general ESD test".format(
-            max_index
-        )
+        f"There are {max_index} possible outliers in the data based on the general ESD test"
     )
     outlier_index = index_lst[0:max_index]
 
-    for index in outlier_index:
-        data = np.delete(data, index)
+    for position in outlier_index:
+        data = np.delete(data, position)
 
     return data
 
 
 def outlier_detection(data: list, analysis_target: list):
-    fence_lst = list()
-    post_gesd_lst = list()
-    for sample in range(len(data)):
-        print(analysis_target[sample])
-        sample = data[sample]
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111)
-        normality_plot, stat = stats.probplot(sample, plot=plt, rvalue=True)
-        ax.set_title("Probability plot of sample", fontsize=20)
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : list
+
+    analysis_target: list
+
+    Returns
+    -------
+    fence_lst : list
+
+    post_gesd_lst : list
+
+    """
+
+    fence_lst = []
+    post_gesd_lst = []
+    for index, sample in enumerate(data):
+        print(analysis_target[index])
+        stats.probplot(sample, plot=plt, rvalue=True)
         plt.show()
-        print("Shapiro test for the data")
-        w, pvalue = stats.shapiro(sample)
-        print("The W stats is {:.4f}".format(w))
+        wstats, pvalue = stats.shapiro(sample)
+        print(f"The W stats is {wstats:.4f}")
         p_value_printout(pvalue)
         print("")
         fence_in, out_count = fence_rule(sample)
         print(
-            "There are {} possilbe outliers based on the fence rule (1.5*IQR)".format(
-                out_count
-            )
+            f"There are {out_count} possilbe outliers based on the fence rule (1.5*IQR)"
         )
         print("")
         if out_count != 0:
-            w, pvalue = stats.shapiro(fence_in)
+            wstats, pvalue = stats.shapiro(fence_in)
             print("Shapiro test after removal of potential outliers with fence rule")
-            print("The W stats is {:.4f}".format(w))
+            print(f"The W stats is {wstats:.4f}")
             p_value_printout(pvalue)
             print("")
         print("General ESD Test for outlier")
-        data_post_gesd = general_ESD(sample, 5, 0.05)
+        data_post_gesd = general_esd(sample, 5, 0.05)
         print("")
         if not np.array_equiv(data_post_gesd, sample):
-            w, pvalue = stats.shapiro(data_post_gesd)
+            wstats, pvalue = stats.shapiro(data_post_gesd)
             print("Shapiro test after removal of potential outliers with general ESD")
-            print("The W stats is {:.4f}".format(w))
+            print(f"The W stats is {wstats:.4f}")
             p_value_printout(pvalue)
             print("")
         fence_lst.append(fence_in)
@@ -172,18 +250,28 @@ def outlier_detection(data: list, analysis_target: list):
 
 
 def p_value_printout(p_value, alpha: float = 0.05):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     if p_value < alpha:
         print(
-            "The p value ({:.3e}) is less than the defined level of significance ({})".format(
-                p_value, alpha
-            )
+            f"The p value ({p_value:.3e}) is less than the defined level of significance ({alpha})"
         )
         print("The null hypothesis is rejected")
     else:
         print(
-            "The p value ({:.3e}) is greater than the defined level of significance ({})".format(
-                p_value, alpha
-            )
+            f"The p value ({p_value:.3e}) is greater than the defined level of significance ({alpha})"
         )
         print("The null hypothesis is not rejected")
     return
@@ -196,6 +284,20 @@ def anova_test(
     dependent: str,
     independent: str = "plate_loc",
 ):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     def anova_table(aov):
         aov["mean_sq"] = aov[:]["sum_sq"] / aov[:]["df"]
 
@@ -217,20 +319,20 @@ def anova_test(
 
     print("")
     print("Shapiro test for normality for the ANOVA residual")
-    w, pvalue = stats.shapiro(model_fit.resid)
-    print("The W stats is {:.4f}".format(w))
+    wstats, pvalue = stats.shapiro(model_fit.resid)
+    print(f"The W stats is {wstats:.4f}")
     p_value_printout(pvalue)
 
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
-    normality_plot, stat = stats.probplot(model_fit.resid, plot=plt, rvalue=True)
+    stats.probplot(model_fit.resid, plot=ax, rvalue=True)
     ax.set_title("Probability plot of model's residuals", fontsize=20)
     plt.show()
 
     print("")
     print("Levene test for equal variance")
     levene = stats.levene(*parameter)
-    print("Test statistics is {:.4f}".format(levene[0]))
+    print(f"Test statistics is {levene[0]:.4f}")
     p_value_printout(levene[-1])
 
     print("")
@@ -244,13 +346,27 @@ def anova_test(
 
 
 def kw_test(data, parameter: str, alpha: float = 0.05):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     print("Kruskal-Wallis H-test")
-    h, p_value = stats.kruskal(*data)
+    _, p_value = stats.kruskal(*data)
     result = pd.DataFrame(
         {
             "test type": "Kruskal-Wallis H-test",
             "parameter": parameter,
-            "p-value": "{:.3e}".format(p_value),
+            "p-value": f"{p_value:.3e}",
             "Reject Null?": p_value < alpha,
         },
         index=[0],
@@ -259,6 +375,20 @@ def kw_test(data, parameter: str, alpha: float = 0.05):
 
 
 def dunn_test(data, conditions: list, adj_method: str = "hs"):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     print("Dunn's Test")
 
     def omega(frame, group1, group2, tie_sum):
@@ -303,14 +433,28 @@ def dunn_test(data, conditions: list, adj_method: str = "hs"):
         }
     )
 
-    result_table["Adjusted p-value"] = result_table["Adjusted p-value"].map(
-        "{:.3e}".format
-    )
+    result_table["Adjusted p-value"] = [
+        f"{value:.3e}" for value in result_table["Adjusted p-value"]
+    ]
 
     return result_table
 
 
 def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     print("Conover-Iman test")
 
     def test_stats(frame, groups, h_corr, s2, group1, group2):
@@ -327,8 +471,8 @@ def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
             * ((len(frame) - 1 - h_corr) / (len(frame) - len(groups)))
             * ((1 / n1) + (1 / n2))
         )
-        t = mean_rank_diff / se
-        return t
+        tstats = mean_rank_diff / se
+        return tstats
 
     h_corr, _ = stats.kruskal(*data)
     frame, groups = __array_to_df(data, conditions)
@@ -350,10 +494,10 @@ def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
         )
 
     comparison_lst = list(it.combinations(groups, 2))
-    p_value_lst = list()
+    p_value_lst = []
     for comp in comparison_lst:
-        t = test_stats(frame, groups, h_corr, s2, *comp)
-        p_value = 2.0 * stats.t.sf(np.abs(t), df=(total_obs - len(groups)))
+        tstats = test_stats(frame, groups, h_corr, s2, *comp)
+        p_value = 2.0 * stats.t.sf(np.abs(tstats), df=total_obs - len(groups))
         p_value_lst.append(p_value)
 
     hypo_test, p_adj, *_ = mt.multipletests(p_value_lst, method=adj_method)
@@ -365,41 +509,65 @@ def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
         }
     )
 
-    result_table["Adjusted p-value"] = result_table["Adjusted p-value"].map(
-        "{:.3e}".format
-    )
-
+    result_table["Adjusted p-value"] = [
+        f"{value:.3e}" for value in result_table["Adjusted p-value"]
+    ]
     return result_table
 
 
 def data_dist_plot(data: pd.DataFrame, mode: str):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     fig = plt.figure(figsize=(10, 10))
 
     if mode == "one_phase":
         ax1 = fig.add_subplot(121)
-        ax1 = sns.boxplot(
-            x="plate_loc", y="rate", data=data, color="#99c2a2", width=0.2
+        sns.boxplot(
+            x="plate_loc", y="rate", data=data, color="#99c2a2", width=0.2, ax=ax1
         )
-        ax1 = sns.swarmplot(x="plate_loc", y="rate", data=data, color="#7d0013")
+        sns.swarmplot(x="plate_loc", y="rate", data=data, color="#7d0013", ax=ax1)
 
         ax2 = fig.add_subplot(122)
-        ax2 = sns.boxplot(
-            x="plate_loc", y="plateau", data=data, color="#99c2a2", width=0.2
+        sns.boxplot(
+            x="plate_loc", y="plateau", data=data, color="#99c2a2", width=0.2, ax=ax2
         )
-        ax2 = sns.swarmplot(x="plate_loc", y="plateau", data=data, color="#7d0013")
+        sns.swarmplot(x="plate_loc", y="plateau", data=data, color="#7d0013", ax=ax2)
 
     else:
-        ax1 = fig.add_subplot(111)
-        ax1 = sns.boxplot(
-            x="plate_loc", y="k_rate", data=data, color="#99c2a2", width=0.2
-        )
-        ax1 = sns.swarmplot(x="plate_loc", y="k_rate", data=data, color="#7d0013")
+        sns.boxplot(x="plate_loc", y="k_rate", data=data, color="#99c2a2", width=0.2)
+        sns.swarmplot(x="plate_loc", y="k_rate", data=data, color="#7d0013")
 
     plt.show()
     return
 
 
 def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
     if mode == "one_phase":
         rate_lst = list()
         plateau_lst = list()
@@ -418,7 +586,21 @@ def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
 
 
 def main(analysis_target: list, mode: str):
-    fname = "indiviual_Screen_{}_param.pkl".format(mode)
+    """
+    xxx
+
+    Parameters
+    ----------
+    data : np.array
+
+
+    Returns
+    -------
+    mode_zs : float
+
+    """
+
+    fname = f"indiviual_Screen_{mode}_param.pkl"
     df = pd.read_pickle(fname)
     df.rename({"Condition": "plate_loc"}, axis=1, inplace=True)
     trig_info = pd.read_pickle("trig_info.pkl")
@@ -431,14 +613,73 @@ def main(analysis_target: list, mode: str):
 
 
 if __name__ == "__main__":
+    # def anova_table(aov):
+    #     aov["mean_sq"] = aov[:]["sum_sq"] / aov[:]["df"]
+
+    #     aov["eta_sq"] = aov[:-1]["sum_sq"] / sum(aov["sum_sq"])
+
+    #     aov["omega_sq"] = (
+    #         aov[:-1]["sum_sq"] - (aov[:-1]["df"] * aov["mean_sq"][-1])
+    #     ) / (sum(aov["sum_sq"]) + aov["mean_sq"][-1])
+
+    #     cols = ["sum_sq", "df", "mean_sq", "F", "PR(>F)", "eta_sq", "omega_sq"]
+    #     aov = aov[cols]
+    #     return aov
+
     os.chdir("dna_sdr/pickles/")
     # df = pd.read_pickle("Screen_first_kinetic_param.pkl")
     # print(df)
 
-    read_lst = ["P0_A1", "P2_A5", "P2_A6"]
-    mode = "first_kinetic"
-    same_loc = main(read_lst, mode)
+    read_lst = ["P0_A1", "P2_A5", "P2_A6", "P0_A5", "P2_D6", "P2_D7"]
+    MODE = "one_phase"
+    same_loc = main(read_lst, MODE)
+    loc_lst = []
+    for loc in same_loc["mismatch_loc"]:
+        loc_lst.append(loc[0])
+
+    type_lst = []
+    for types in same_loc["mismatch_type"]:
+        type_lst.append(types[0])
+    same_loc["mismatch_loc"] = loc_lst
+    same_loc["mismatch_type"] = type_lst
+
     print(same_loc)
+
+    # model = "plateau ~ C(mismatch_loc) + C(mismatch_type) + C(mismatch_loc):C(mismatch_type)"
+
+    # model_fit = ols(model, data=same_loc).fit()
+    # aov = sm.stats.anova_lm(model_fit, typ=2)
+    # aov_table = anova_table(aov)
+    # print(aov_table)
+    # print("")
+    # print("Shapiro test for normality for the ANOVA residual")
+    # w, pvalue = stats.shapiro(model_fit.resid)
+    # print(f"The W stats is {w:.4f}")
+    # p_value_printout(pvalue)
+    # fig = plt.figure(figsize=(10, 10))
+    # ax = fig.add_subplot(111)
+    # normality_plot, stat = stats.probplot(model_fit.resid, plot=plt, rvalue=True)
+    # ax.set_title("Probability plot of model's residuals", fontsize=20)
+    # plt.show()
+
+    # model = (
+    #     "rate ~ C(mismatch_loc) + C(mismatch_type) + C(mismatch_loc):C(mismatch_type)"
+    # )
+
+    # model_fit = ols(model, data=same_loc).fit()
+    # aov = sm.stats.anova_lm(model_fit, typ=2)
+    # aov_table = anova_table(aov)
+    # print(aov_table)
+    # print("")
+    # print("Shapiro test for normality for the ANOVA residual")
+    # w, pvalue = stats.shapiro(model_fit.resid)
+    # print(f"The W stats is {w:.4f}")
+    # p_value_printout(pvalue)
+    # fig = plt.figure(figsize=(10, 10))
+    # ax = fig.add_subplot(111)
+    # normality_plot, stat = stats.probplot(model_fit.resid, plot=plt, rvalue=True)
+    # ax.set_title("Probability plot of model's residuals", fontsize=20)
+    # plt.show()
 
     # """
     # Graphical repersentation of the data distribution using boxplot and catagorical scatter plot
