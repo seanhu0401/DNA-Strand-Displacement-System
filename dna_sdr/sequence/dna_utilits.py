@@ -1,6 +1,7 @@
-import regex as re
 from dataclasses import dataclass, field
 from typing import Optional
+import regex as re
+
 
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
 
@@ -17,15 +18,13 @@ class DNA:
             self.base_count = len(self.seq)
         else:
             raise ValueError(
-                "The sequence given is not a DNA sequence. Sequence given: {}".format(
-                    self.seq
-                )
+                f"The sequence given is not a DNA sequence. Sequence given: {self.seq}"
             )
 
     def complement(self):
-        base_list = list()
-        for base in self:
-            base_list.appen(base_pairing[base])
+        base_list = []
+        for base in self.seq:
+            base_list.append(base_pairing[base])
         complment_seq = "".join(base_list)
         return complment_seq
 
@@ -34,13 +33,13 @@ class DNA:
         return reverse
 
     def reverse_complement(self):
-        reversed = self.reverse_seq()
-        reverse_complment_seq = self.complement(reversed)
+        reversed_seq = self.reverse_seq()
+        reverse_complment_seq = reversed_seq.complement()
         return reverse_complment_seq
 
 
 @dataclass
-class trigger(DNA):
+class Trigger(DNA):
     name: str
     toehold: Optional[int] = None
     overhang: Optional[int] = None
@@ -48,6 +47,3 @@ class trigger(DNA):
     mismatch_loc: Optional[list] = None
     mismatch_type: Optional[list] = None
     plate_loc: Optional[str] = None
-
-    def __post_init__(self):
-        super().__post_init__()

@@ -4,7 +4,7 @@ import regex as re
 
 def trig_list_gen(fname_list):
     trig_list = []
-    re_query = "[a-zA-Z]\d\d"
+    re_query = r"[a-zA-Z]\d\d"
     for fname in fname_list:
         split_name = fname.split(".")[0].split("_")
         match = re.findall(re_query, fname)
@@ -35,20 +35,13 @@ def file_path_generation(test_type, trig_type):
     parent_dir = "../Processed/"
 
     if test_type == "Ratio" or test_type == "Screen" or test_type == "Conc":
-        dir_name = "4WJ_HEX_{t_test}_{Trig}".format(t_test=test_type, Trig=trig_type)
-
+        dir_name = f"4WJ_HEX_{test_type}_{trig_type}"
     else:
-        raise Exception("unknown test type - {}".format(test_type))
+        raise ValueError(f"unknown test type - {test_type}")
 
-    combined_data_after_baseline_subtraction_pickle = "{base}.{extension}".format(
-        base=dir_name, extension=pickle_extension
-    )
-    norm_combined_data_pickle = "{base}_normalized.{extension}".format(
-        base=dir_name, extension=pickle_extension
-    )
-    summerized_data_pickle = "{base}_summerized.{extension}".format(
-        base=dir_name, extension=pickle_extension
-    )
+    combined_data_after_baseline_subtraction_pickle = f"{dir_name}.{pickle_extension}"
+    norm_combined_data_pickle = f"{dir_name}_normalized.{pickle_extension}"
+    summerized_data_pickle = f"{dir_name}_summerized.{pickle_extension}"
     cdata_path = os.path.join(
         pickle_save_path, combined_data_after_baseline_subtraction_pickle
     )

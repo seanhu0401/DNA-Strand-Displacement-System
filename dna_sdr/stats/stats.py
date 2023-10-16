@@ -9,7 +9,7 @@ import os
 import itertools as it
 import pandas as pd
 import numpy as np
-import scipy.stats as stats
+from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
@@ -30,7 +30,7 @@ def __array_to_df(
     Parameters
     ----------
     data : np.array
-
+        The input data
     condition : list
         A list of condition presented
     group_name : str
@@ -40,7 +40,11 @@ def __array_to_df(
 
     Returns
     -------
-    pd.DataFrame
+    frame : pd.DataFrame
+        The resulting dataframe after converting the numpy array
+
+    groups : list
+        A list containing the names of each conditions
 
     """
 
@@ -67,19 +71,51 @@ def __array_to_df(
     return frame, groups
 
 
+def p_value_printout(p_value: float, alpha: float = 0.05):
+    """
+    Visual text print out for if a p-value from a specific stats test is greater/less than the
+    pre-defined significance level and if the null hypothesis is rejected.
+
+    Parameters
+    ----------
+    p_value : float
+        The p-value calculated based on the specific stats test.
+
+    alpha : float
+        The pre-defined significance level.
+
+    """
+
+    if p_value < alpha:
+        print(
+            f"The p value ({p_value:.3e}) is less than the defined significance level ({alpha})"
+        )
+        print("The null hypothesis is rejected")
+    else:
+        print(
+            f"The p value ({p_value:.3e}) is greater than the defined significance level ({alpha})"
+        )
+        print("The null hypothesis is not rejected")
+
+
 def fence_rule(data: np.array):
     """
-    xxx
+    Outlier detection function utilizing the fence rule (1.5x IQR).
+    The function determine how many potential outliers are presented and returns
+    an array that contains non-outliers and number of potential outliers
 
     Parameters
     ----------
     data : np.array
+        The input data
 
     Returns
     -------
     fence_in : np.array
+        The array that contains all non-outliers based on the fence rule.
 
     fence_out_count : int
+        The number of potential outliers in the data set.
 
     """
 
@@ -94,16 +130,18 @@ def fence_rule(data: np.array):
 
 def modified_z_score(data: np.array):
     """
-    xxx
+    Calculating the modified z-score for the data set baed on the mediam absolute deviation of the
+    data set
 
     Parameters
     ----------
     data : np.array
-
+        The input data
 
     Returns
     -------
-    mode_zs : float
+    mod_zs : float
+        The modified z-scores
 
     """
 
@@ -115,19 +153,24 @@ def modified_z_score(data: np.array):
 
 def general_esd(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05):
     """
-    xxx
+    The general extreme standard deviation (ESD) method for outlier detection. This method
+    is suitable if the data without the outliers are normally distributed.
 
     Parameters
     ----------
     data : np.array
+        The input data
 
     poss_outlier_count : int
+        The upper limit of potential outlier count
 
     alpha : float
+        The significance level
 
     Returns
     -------
     data : np.array
+        The returned data set without the potential outliers
 
     """
 
@@ -197,19 +240,23 @@ def general_esd(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05
 
 def outlier_detection(data: list, analysis_target: list):
     """
-    xxx
+    The overall outlier detection method with both fence rules and generalized ESD method
 
     Parameters
     ----------
     data : list
+        The list of data in np.array format.
 
     analysis_target: list
+        The list of targets (well location) that is presented in the data.
 
     Returns
     -------
     fence_lst : list
+        The list of data without the potential outliers based on the fence rule.
 
     post_gesd_lst : list
+        The list of data without the potential outliers based on the generalized ESD method.
 
     """
 
@@ -249,34 +296,6 @@ def outlier_detection(data: list, analysis_target: list):
     return fence_lst, post_gesd_lst
 
 
-def p_value_printout(p_value, alpha: float = 0.05):
-    """
-    xxx
-
-    Parameters
-    ----------
-    data : np.array
-
-
-    Returns
-    -------
-    mode_zs : float
-
-    """
-
-    if p_value < alpha:
-        print(
-            f"The p value ({p_value:.3e}) is less than the defined level of significance ({alpha})"
-        )
-        print("The null hypothesis is rejected")
-    else:
-        print(
-            f"The p value ({p_value:.3e}) is greater than the defined level of significance ({alpha})"
-        )
-        print("The null hypothesis is not rejected")
-    return
-
-
 def anova_test(
     data: pd.DataFrame,
     parameter: list,
@@ -285,20 +304,46 @@ def anova_test(
     independent: str = "plate_loc",
 ):
     """
-    xxx
+    ANOVA test utilizing the linear ANOVA model with type 2 sum of squares from statsmodel.
+    In addition to the ANOVA test, the assumption of normally distributed residuals are tested
+    using Shapiro test and visualized with probabilty plot. The equal variance assumption was
+    tested using the Levene test. If the result of the ANOVA is significant, a multi-comparison
+    test is carried out using Tukey-HSD method to determine which group is significantly different.
 
     Parameters
     ----------
-    data : np.array
+    data : pd.DataFrame
+        The combined dataframe of all the target conditions.
 
+    parameter : list
+        The list of list with individual group of data set.
 
-    Returns
-    -------
-    mode_zs : float
+    model : str
+        The ANOVA model as a string in the format of "dep. ~ C(indep.)" for one-way ANOVA.
+
+    dependent : str
+        The name of dependent variable for the ANOVA analysis
+
+    independent : str
+        The name of independent variable for the ANOVA analysis
 
     """
 
     def anova_table(aov):
+        """
+        Inner function to augment the ANOVA table from statsmodel
+
+        Parameters
+        ----------
+        aov
+            The ANOVA table returned from the statsmodel
+
+        Returns
+        -------
+        aov
+            The augmented ANOVA table with eta-square and omega-square
+
+        """
         aov["mean_sq"] = aov[:]["sum_sq"] / aov[:]["df"]
 
         aov["eta_sq"] = aov[:-1]["sum_sq"] / sum(aov["sum_sq"])
@@ -324,9 +369,8 @@ def anova_test(
     p_value_printout(pvalue)
 
     fig = plt.figure(figsize=(10, 10))
-    ax = fig.add_subplot(111)
-    stats.probplot(model_fit.resid, plot=ax, rvalue=True)
-    ax.set_title("Probability plot of model's residuals", fontsize=20)
+    stats.probplot(model_fit.resid, plot=fig, rvalue=True)
+    fig.set_title("Probability plot of model's residuals", fontsize=20)
     plt.show()
 
     print("")
@@ -342,10 +386,8 @@ def anova_test(
         print(post_hoc_res.summary())
         print("")
 
-    return
 
-
-def kw_test(data, parameter: str, alpha: float = 0.05):
+def kw_test(data: np.array, parameter: str, alpha: float = 0.05):
     """
     xxx
 
@@ -354,9 +396,18 @@ def kw_test(data, parameter: str, alpha: float = 0.05):
     data : np.array
 
 
+    parameter: str
+
+
+    alpha: float
+
+
     Returns
     -------
-    mode_zs : float
+    result : pd.DataFrame
+
+
+    p_value: float
 
     """
 
@@ -382,10 +433,13 @@ def dunn_test(data, conditions: list, adj_method: str = "hs"):
     ----------
     data : np.array
 
+    conditions: list
+
+    adj_method: str
 
     Returns
     -------
-    mode_zs : float
+    result_table : pd.DataFrame
 
     """
 
@@ -416,7 +470,7 @@ def dunn_test(data, conditions: list, adj_method: str = "hs"):
     )
 
     comparison_lst = list(it.combinations(groups, 2))
-    p_value_lst = list()
+    p_value_lst = []
     for comp_group in comparison_lst:
         omega_i = omega(frame, *comp_group, tie_sum)
         y_i = mean_rank_diff(frame_rank_mean, *comp_group)
@@ -448,10 +502,13 @@ def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
     ----------
     data : np.array
 
+    condition: list
+
+    adj_method: str
 
     Returns
     -------
-    mode_zs : float
+    result_table : pd.DataFrame
 
     """
 
@@ -521,12 +578,10 @@ def data_dist_plot(data: pd.DataFrame, mode: str):
 
     Parameters
     ----------
-    data : np.array
+    data : pd.DataFrame
 
 
-    Returns
-    -------
-    mode_zs : float
+    mode : str
 
     """
 
@@ -550,7 +605,6 @@ def data_dist_plot(data: pd.DataFrame, mode: str):
         sns.swarmplot(x="plate_loc", y="k_rate", data=data, color="#7d0013")
 
     plt.show()
-    return
 
 
 def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
@@ -559,7 +613,11 @@ def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
 
     Parameters
     ----------
-    data : np.array
+    data : pd.DataFrame
+
+    mode : str
+
+    analysis_target : list
 
 
     Returns
@@ -569,8 +627,8 @@ def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
     """
 
     if mode == "one_phase":
-        rate_lst = list()
-        plateau_lst = list()
+        rate_lst = []
+        plateau_lst = []
         for target in analysis_target:
             target_df = data[data["plate_loc"] == target]
             rate_lst.append(target_df["rate"].to_numpy())
@@ -578,7 +636,7 @@ def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
         return rate_lst, plateau_lst
 
     else:
-        rate_lst = list()
+        rate_lst = []
         for target in analysis_target:
             target_df = data[data["plate_loc"] == target]
             rate_lst.append(target_df["k_rate"].to_numpy())

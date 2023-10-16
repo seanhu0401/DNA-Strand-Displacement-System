@@ -1,9 +1,11 @@
+import os
+import glob
+import pickle
 import pandas as pd
 import numpy as np
 from lmfit import Model
 from scipy.integrate import solve_ivp
 from dna_sdr.data_process.list_generation import time_list_generation
-import os, glob, pickle
 
 
 def one_phase_association(time, plateau, k):
@@ -11,10 +13,10 @@ def one_phase_association(time, plateau, k):
     return plateau * (1 - np.exp(-k * time))
 
 
-def first_kinetic(t, y0, k1):
+def first_kinetic(t, y0, k):
     # simplified system of ODE for SDR system
     I, Q = y0
-    k1 = k1
+    k1 = k
 
     # the model equations
     dIdt = -k1 * I
@@ -36,10 +38,10 @@ def first_kin_fit(t, y0, k1):
     return x.y[-1]
 
 
-def second_kinetic(t, y0, k1):
+def second_kinetic(t, y0, k):
     # simplified system of ODE for SDR system
     I, QT, IT, Q = y0
-    k1 = k1
+    k1 = k
 
     # the model equations
     dIdt = -k1 * I * QT
@@ -63,7 +65,7 @@ def sec_kin_fit(t, y0, k1):
     return x.y[2]
 
 
-def ind_fit(file, test, equation: str, labels: list):
+def ind_fit(file, equation: str, labels: list):
     df = pd.read_pickle(file)
     name = file.split(".")[0]
     cond = "_".join(name.split("_")[-2:])
@@ -226,7 +228,7 @@ def parameter_determination(test, individual=False):
     sec_kinetic_df_list = list()
     sec_kinetic_result_dict = dict()
     if not individual:
-        str_query = "*_{}_*_summerized.pkl".format(test)
+        str_query = f"*_{test}_*_summerized.pkl"
         if test == "Ratio":
             one_phase_list = [
                 "Condition",
@@ -264,7 +266,7 @@ def parameter_determination(test, individual=False):
             ]
 
     else:
-        str_query = "*_{}_*.pkl".format(test)
+        str_query = f"*_{test}_*.pkl"
         one_phase_list = [
             "Condition",
             "plateau",
@@ -296,13 +298,13 @@ def parameter_determination(test, individual=False):
 
         else:
             one_phase_params_list, one_phase_results = ind_fit(
-                f, test, "one_phase", one_phase_list
+                f, "one_phase", one_phase_list
             )
             first_kinetic_params_list, first_kinetic_results = ind_fit(
-                f, test, "first_kinetic", kinetic_list
+                f, "first_kinetic", kinetic_list
             )
             sec_kinetic_params_list, sec_kinetic_results = ind_fit(
-                f, test, "sec_kinetic", kinetic_list
+                f, "sec_kinetic", kinetic_list
             )
 
         if not bool(one_phase_result_dict):

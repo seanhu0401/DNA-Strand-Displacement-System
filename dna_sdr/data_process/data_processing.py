@@ -5,14 +5,26 @@ from group import group_query, group_generation
 
 
 def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
+    """
+    xxx
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+
+
+    """
     # initial data after subtraction of baseline and data cleaning
     count = 0
     combined_df = pd.DataFrame
     print(fn)
     test_type = fn.split("_")[2]
-    query_str = fn + "*.{}".format(ext)
+    query_str = fn + f"*.{ext}"
     if test_type == "Conc":
-        query_str = "{}_{}_*.{}".format(fn, opt, ext)
+        query_str = f"{fn}_{opt}_*.{ext}"
 
     for file in glob.glob(query_str):
         if test_type == "Screen":
@@ -23,9 +35,7 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
                 col_read = [str(i) for i in range(1, neg_con_tube_number + 4)]
                 reverse_control = True
                 print(
-                    "This file contained the study with the reversed control order: {}".format(
-                        file
-                    )
+                    f"This file contained the study with the reversed control order: {file}"
                 )
 
             else:
@@ -41,13 +51,13 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
             reverse_control = False
 
         else:
-            print("The current file name is {}".format(fn))
-            raise ValueError("The test type is unknown - {}".format(test_type))
+            print(f"The current file name is {fn}")
+            raise ValueError(f"The test type is unknown - {test_type}")
 
         col_read.insert(0, "Cycle")
 
         # Read the current csv file with the predefined column names
-        print("currently reading file: {}".format(file))
+        print(f"currently reading file: {file}")
         df = pd.read_csv(file, usecols=col_read)
         df.insert(1, "time (min)", t_list_mins, True)
         df.set_index("Cycle", inplace=True)
@@ -67,14 +77,18 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
 
         data_minus_baseline = data.subtract(avg_neg_control, axis=0)
 
-        # Finding the files that matches the condition, combine them together and divide by the avg positive control
+        # Finding the files that matches the condition,
+        # combine them together and divide by the avg positive control
+
         norm_data = data_minus_baseline.div(avg_pos_control_minus_baseline, axis=0)
 
         final_value = norm_data.iloc[-1, :]
         ind_norm_data = norm_data.div(final_value, axis=1)
 
-        # Drop the samples that did not started by cycle 3 and change in values between initial and cycle 4 is less than 0.05
-        drop_col = list()
+        # Drop the samples that did not started by cycle 3 and change in
+        # values between initial and cycle 4 is less than 0.05
+
+        drop_col = []
         for col in range(len(ind_norm_data.columns)):
             value_change = ind_norm_data.iloc[4, col] - ind_norm_data.iloc[0, col]
             if value_change < 0.05 and ind_norm_data.iloc[3, col] < 0:
@@ -82,7 +96,8 @@ def data_combination(fn, ext, groups, t_list_mins, cdata_path, opt=None):
         print(drop_col)
         norm_data.drop(columns=drop_col, inplace=True)
 
-        # check if there are existing file for the condition. If there is, append the new data to it, else create a new dataframe and export afterward.
+        # check if there are existing file for the condition.
+        # If there is, append the new data to it, else create a new dataframe and export afterward.
         if count == 0:
             if not os.path.exists(cdata_path):
                 combined_df = norm_data
@@ -118,7 +133,7 @@ def data_average(df, time_list, group_dict, presented_groups, sdata_path):
     counter = 1
 
     for group in presented_groups:
-        temp_col_name = "{}".format(group_dict[counter])
+        temp_col_name = f"{group_dict[counter]}"
         print(len(df.loc[:, group].columns))
         mean_col_name = temp_col_name + "_mean"
         std_col_name = temp_col_name + "_std"
@@ -151,7 +166,7 @@ if __name__ == "__main__":
         print(fname)
         plate_num = fname.split("_")[3]
         groups, group_lst = group_query(fname)
-        x = ["{}_{}".format(plate_num, i) for i in group_lst if i != "T1"]
+        x = [f"{plate_num}_{i}" for i in group_lst if i != "T1"]
 
         df = pd.read_pickle(fname)
         control = groups * 4 + 1
@@ -159,7 +174,7 @@ if __name__ == "__main__":
         presented_dict = dict(zip(x, presented[1:]))
 
         for k, v in presented_dict.items():
-            name = "./Individual/4WJ_HEX_Screen_{}.pkl".format(k)
+            name = f"./Individual/4WJ_HEX_Screen_{k}.pkl"
             filtered_df = df.loc[:, v]
             filtered_df.to_pickle(name)
 

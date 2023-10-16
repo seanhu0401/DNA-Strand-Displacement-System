@@ -1,4 +1,4 @@
-from dna_sdr.sequence.dna_utilits import DNA, trigger
+from dna_sdr.sequence.dna_utilits import DNA, Trigger
 import pandas as pd
 import regex as re
 import os
@@ -165,9 +165,9 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
             info = trig_aligment(trig1, seq)
             name = name_generation(*info[:2], *info[3:])
             try:
-                dna_trig = trigger(seq, name, *info, plate_loc)
+                dna_trig = Trigger(seq, name, *info, plate_loc)
             except UnboundLocalError:
-                dna_trig = trigger(seq, name, *info)
+                dna_trig = Trigger(seq, name, *info)
             master_list.append(dna_trig)
 
     trig_df = pd.DataFrame([vars(trig) for trig in master_list])
