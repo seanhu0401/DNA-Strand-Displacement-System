@@ -317,11 +317,26 @@ def data_combination(
 
     Parameters
     ----------
+    fn : str
+        The based file name used for searching with glob.glob
 
+    ext : str
+        The file extension used for searching with glob.glob
+
+    groups: int
+        The number of groups in the trial
+
+    cdata_path : str
+        The save path for the combined dataframe in pickle format
+
+    opt : str | None
+        Optional augument with default None. Used in ratio study to indicate the
+        direction of the ratio.
 
     Returns
     -------
-
+    combined_df : pd.DataFrame
+        The combined dataframe for the trials with the same testing conditions.
 
     """
     # initial data after subtraction of baseline and data cleaning
