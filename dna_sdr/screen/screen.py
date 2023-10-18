@@ -1,9 +1,7 @@
 import glob
 import os
 import shutil
-import dna_sdr.data_process.list_generation as lst_gen
-import dna_sdr.data_process.data_processing as dp
-import dna_sdr.data_process.group as grouping
+import dna_sdr.data_process.data as data_processing
 
 
 if __name__ == "__main__":
@@ -22,7 +20,7 @@ if __name__ == "__main__":
         if f not in file_list:
             file_list.append(f)
 
-    trig_list = lst_gen.trig_list_gen(file_list)
+    trig_list = data_processing.trig_list_gen(file_list)
     trig_type_dict = dict(zip(list(range(1, len(trig_list) + 1)), trig_list))
 
     if not trig_list:
@@ -40,18 +38,21 @@ if __name__ == "__main__":
         # path[3] = sum_data_path
         # path[4] = processed_path
 
-        paths = lst_gen.file_path_generation(test_type, trig_type_selected)
+        if isinstance(trig_type_selected, str):
+            paths = data_processing.file_path_generation(test_type, trig_type_selected)
+        else:
+            raise ValueError()
 
-        groups, group_list = grouping.group_query(paths[0])
+        groups, group_list = data_processing.group_query(paths[0])
         group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
-        time_list_mins = lst_gen.time_list_generation(60)
+        time_list_mins = data_processing.time_list_generation(60)
 
         # Combined the data together and check for conditions that are not accurate
         # after normalization with the positive and negative control and generate a
         # combined data dataframe for further analysis.
 
-        combined_data_df = dp.data_combination(
-            paths[0], extension, groups, time_list_mins, paths[1]
+        combined_data_df = data_processing.data_combination(
+            paths[0], extension, groups, paths[1]
         )
 
         # export the combined file for storage + quick access
@@ -59,7 +60,7 @@ if __name__ == "__main__":
 
         # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1
-        group_of_samples, presented_groups = grouping.group_generation(
+        group_of_samples, presented_groups = data_processing.group_generation(
             combined_data_df, con_tube_number
         )
 
@@ -67,7 +68,7 @@ if __name__ == "__main__":
         # export the dataframe into csv and/or pickle files for storage and quicker access
         # in Python
 
-        norm_data_df = dp.data_normalization(
+        norm_data_df = data_processing.data_normalization(
             combined_data_df, group_of_samples, paths[2]
         )
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
         # each condition and combined it all into one dataframe. Export the dataframe into
         # csv and/or pickle files for storage and quicker access in Python
 
-        dp.data_average(
+        data_processing.data_average(
             norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
         )
 
