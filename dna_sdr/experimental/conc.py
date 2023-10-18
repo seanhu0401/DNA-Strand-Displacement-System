@@ -2,9 +2,7 @@ import glob
 import os
 import shutil
 import regex as re
-import dna_sdr.data_process.list_generation as lst_gen
-import dna_sdr.data_process.group as grouping
-import dna_sdr.data_process.data_processing as dp
+import dna_sdr.experimental.data_processing as dp
 
 if __name__ == "__main__":
     cwd = os.getcwd()
@@ -17,12 +15,12 @@ if __name__ == "__main__":
 
     # Loop through the files from the input folder and find the matching files for processing
     # Add the trigger type into a list and convert to a dict for selection
-    fname_search = "4WJ_HEX_" + "{}_*.{}".format(test_type, extension)
+    fname_search = "4WJ_HEX_" + f"{test_type}_*.{extension}"
     for f in glob.glob(fname_search):
         if f not in file_list:
             file_list.append(f)
 
-    trig_list = lst_gen.trig_list_gen(file_list)
+    trig_list = dp.trig_list_gen(file_list)
     trig_type_dict = dict(zip(list(range(1, len(trig_list) + 1)), trig_list))
 
     if not trig_list:
@@ -41,7 +39,7 @@ if __name__ == "__main__":
         path[3] = sum_data_path
         path[4] = processed_path
         """
-        paths = lst_gen.file_path_generation(test_type, trig_type_selected)
+        paths = dp.file_path_generation(test_type, trig_type_selected)
         fn = [f for f in file_list if re.match(paths[0] + "_*", f)]
 
         lower_len = len([f for f in fn if re.match(r"\w*_under", f)])
@@ -50,9 +48,9 @@ if __name__ == "__main__":
             option = "under"
         elif len(fn) == upper_len:
             option = "over"
-        groups, group_list = grouping.group_query(paths[0], option)
+        groups, group_list = dp.group_query(paths[0], option)
         group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
-        time_list_mins = lst_gen.time_list_generation(60)
+        time_list_mins = dp.time_list_generation(60)
 
         """
         Combined the data together and check for conditions that are not accurate
@@ -61,7 +59,7 @@ if __name__ == "__main__":
         """
 
         combined_data_df = dp.data_combination(
-            paths[0], extension, groups, time_list_mins, paths[1], opt=option
+            paths[0], extension, groups, paths[1], opt=option
         )
 
         # export the combined file for storage + quick access
@@ -69,7 +67,7 @@ if __name__ == "__main__":
 
         # Generate the groups presented in the combined data dataframe
         con_tube_number = groups * 4 + 1
-        group_of_samples, presented_groups = grouping.group_generation(
+        group_of_samples, presented_groups = dp.group_generation(
             combined_data_df, con_tube_number
         )
 
