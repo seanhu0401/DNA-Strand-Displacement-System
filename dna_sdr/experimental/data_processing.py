@@ -313,7 +313,8 @@ def data_combination(
     opt: str | None = None,
 ) -> pd.DataFrame:
     """
-    xxx
+    Combine the data across differnt trials with same experiemtnal
+    condition into one dataframe
 
     Parameters
     ----------
@@ -442,6 +443,8 @@ def data_combination(
         else:
             combined_df = pd.concat([combined_df, norm_data], axis=1)
         count += 1
+
+        combined_df.to_pickle(cdata_path)
 
     return combined_df
 
