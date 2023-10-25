@@ -1,8 +1,12 @@
-from dna_sdr.sequence.dna_utilits import DNA, Trigger
+"""
+Module docstring
+"""
+
+import os
 import pandas as pd
 import regex as re
-import os
 from more_itertools import consecutive_groups
+from dna_sdr.sequence.dna_utilits import DNA, Trigger
 
 comp_dict = {"t": 1, "g": 2, "c": 3, "a": 4}
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
@@ -22,7 +26,17 @@ mismatch_type_dict = {
 }
 
 
-def find_range(iterable):
+def find_range(iterable: list[int]):
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     for group in consecutive_groups(iterable):
         group = list(group)
         if len(group) == 1:
@@ -32,81 +46,103 @@ def find_range(iterable):
 
 
 # *Think of better name for the method
-# This function is currently used to compare to sequence, mainly the triggers, to identify the location(s) that has/have mismatch(es)
-# They should be equal length in bases if there is no modification to the toehold + dangles - not applicable with those modification currently
-def sequence_comparison(seq_1: str, seq_2: str):
-    comparison_lst = []
-    base_loc_lst = []
-    counter = 0
+def sequence_comparison(seq_1: str, seq_2: str) -> dict[int, int]:
+    """
+    This function is currently used to compare to sequence, mainly the triggers, to identify the
+    location(s) that has/have mismatch(es). They should be equal length in bases if there is no
+    modification to the toehold + dangles - not applicable with those modification currently
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    comparison_lst: list[int] = []
+    base_loc_lst: list[int] = []
+    counter: int = 0
 
     try:
         strand_1 = DNA(seq_1)
         strand_2 = DNA(seq_2)
-    except ValueError:
-        raise TypeError("The input is not a DNA type")
+    except ValueError as e:
+        raise TypeError("The input is not all valid nucleotide") from e
 
     if strand_1.base_count != strand_2.base_count:
-        raise Exception("The two sequences are not equal length")
+        raise ValueError("The two sequences are not equal length")
 
-    else:
-        while counter < strand_1.base_count:
-            comp_val = 0
-            if strand_1.seq[counter] == strand_2.seq[counter]:
-                comparison_lst.append(comp_val)
-            elif strand_1.seq[counter] != strand_2.seq[counter]:
-                comp_val = comp_dict[strand_2.seq[counter]]
-                comparison_lst.append(comp_val)
-            base_loc_lst.append(counter + 1)
-            counter += 1
-        seq_comp_dict = dict(zip(base_loc_lst, comparison_lst))
+    while counter < strand_1.base_count:
+        comp_val: int = 0
+        if strand_1.seq[counter] == strand_2.seq[counter]:
+            comparison_lst.append(comp_val)
+        elif strand_1.seq[counter] != strand_2.seq[counter]:
+            comp_val = comp_dict[strand_2.seq[counter]]
+            comparison_lst.append(comp_val)
+        base_loc_lst.append(counter + 1)
+        counter += 1
+    seq_comp_dict = dict(zip(base_loc_lst, comparison_lst))
 
     return seq_comp_dict
 
 
-def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
+def trig_aligment(
+    trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
+) -> tuple[int, int, int, list[int], list[int]]:
     """
+    xxx
+
     trigger1 is the complementory trigger for the system
     trigger2 is the modified trigger for the system
     input toehold and overhang bases if the inital trigger does not have
     7 toehold bases and 5 overhang bases.
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+
+
     """
+
+    def tb_ob_calculation(
+        t1: DNA, t2: DNA, toehold_b: int, overhang_b: int
+    ) -> tuple[int, int]:
+        base_difference = abs(t1.base_count - t2.base_count)
+        new_tb = toehold_b
+        new_ob = overhang_b
+        if toehold_b == 7 and overhang_b == 5:
+            if base_difference < overhang_b and base_difference != 0:
+                new_ob: int = overhang_b - base_difference
+            elif (toehold_b + overhang_b) >= base_difference >= overhang_b:
+                new_tb: int = toehold_b + overhang_b - base_difference
+                new_ob: int = 0
+            elif base_difference > (toehold_b + overhang_b):
+                raise ValueError(
+                    "Missing toehold region and overhang - please check input sequence"
+                )
+        return new_tb, new_ob
+
     try:
         trig1 = DNA(trigger1)
         trig2 = DNA(trigger2)
-    except ValueError:
-        raise TypeError("Not all sequence given is DNA sequences")
+    except ValueError as e:
+        raise TypeError("Not all sequence given is DNA sequences") from e
 
     counter = tb_mismatch = ob_mismatch = mismatch = 0
-    mismatch_loc = list()
-    mismatch_type = list()
+    mismatch_loc: list[int] = []
+    mismatch_type: list[int] = []
 
-    base_difference = abs(trig1.base_count - trig2.base_count)
-    if tb == 7 and ob == 5:
-        if base_difference < ob and base_difference != 0:
-            new_ob = ob - base_difference
-        elif (base_difference >= ob) and (base_difference <= (tb + ob)):
-            new_tb = tb + ob - base_difference
-            new_ob = 0
-        elif base_difference == 0:
-            new_tb = tb
-            new_ob = ob
-        elif base_difference > (tb + ob):
-            raise ValueError(
-                "Missing toehold region and overhang - please check input sequence"
-            )
-    else:
-        new_tb = tb
-        new_ob = ob
+    new_tb, new_ob = tb_ob_calculation(trig1, trig2, toehold_b, overhang_b)
 
     for base in trig2.reverse_seq():
         base_at_loc = trig1.reverse_seq()[counter]
-
-        if base == base_at_loc and counter < (trig2.base_count - new_ob):
-            pass
-        elif base != base_at_loc and counter < (trig2.base_count - new_ob):
+        if base != base_at_loc and counter < (trig2.base_count - new_ob):
             location = trig1.base_count - counter
             mismatch_loc.append(location)
-            mismatch_str = "{}-{}".format(base_at_loc, base)
+            mismatch_str = f"{base_at_loc}-{base}"
             mismatch_type.append(mismatch_type_dict[mismatch_str])
             mismatch += 1
             if location <= (new_tb + new_ob):
@@ -114,7 +150,6 @@ def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
                     tb_mismatch += 1
                 else:
                     ob_mismatch += 1
-
         counter += 1
 
     new_tb = new_tb - tb_mismatch
@@ -125,15 +160,26 @@ def trig_aligment(trigger1: str, trigger2: str, tb=7, ob=5):
     return new_tb, new_ob, mismatch, mismatch_loc, mismatch_type
 
 
-def name_generation(toehold_b, overhang_b, mismatch, type_mismatch):
+def name_generation(
+    toehold_b: int, overhang_b: int, mismatch: list[int], type_mismatch: list[int]
+) -> str:
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     mismatch_groups = list(find_range(mismatch))
 
     base_name = f"{toehold_b}tb_5'{overhang_b}ob"
 
     full_mismatch_name = str()
 
-    for loc in range(len(mismatch_groups)):
-        group = mismatch_groups[loc]
+    for loc, group in enumerate(mismatch_groups):
         if isinstance(group, int):
             base_number = 1
             mismatch_name = f"_{group}_{base_number}mb_{type_mismatch[loc]}"
@@ -148,18 +194,30 @@ def name_generation(toehold_b, overhang_b, mismatch, type_mismatch):
     return base_name + full_mismatch_name
 
 
-def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
+def seq_info(
+    fname: str, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+) -> pd.DataFrame:
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     xls = pd.ExcelFile(fname)
-    master_list = list()
+    master_list = []
 
     for sname in xls.sheet_names:
         dna_seq_df = pd.read_excel(fname, sheet_name=sname)
-        loc_df = dna_seq_df.filter(regex="P\d Location", axis=1)
+        loc_df = dna_seq_df.filter(regex=r"P\d Location", axis=1)
         dna_seq = dna_seq_df["Seqences (5' to 3')"]
         for count in range(len(dna_seq)):
             location = loc_df.iloc[count].dropna()
             for well in location:
-                plate = re.findall("P\d", location.index[0])[0]
+                plate = re.findall(r"P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
             info = trig_aligment(trig1, seq)
@@ -176,14 +234,14 @@ def seq_info(fname, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"):
 
 
 if __name__ == "__main__":
-    fname = "./dna_sdr/DNA_Strands.xlsx"
-    pickle_name = "./dna_sdr/pickles/trig_info.pkl"
-    df = seq_info(fname)
-    if os.path.exists(pickle_name):
-        trig_df = pd.read_pickle(pickle_name)
-        if df.equals(trig_df):
+    FNAME = "./dna_sdr/DNA_Strands.xlsx"
+    PICKLE_NAME = "./dna_sdr/pickles/trig_info.pkl"
+    Info_df = seq_info(FNAME)
+    if os.path.exists(PICKLE_NAME):
+        trigger_df = pd.read_pickle(PICKLE_NAME)
+        if Info_df.equals(trigger_df):
             print("Same dataframe - no new file")
         else:
-            df.to_pickle(pickle_name)
+            Info_df.to_pickle(PICKLE_NAME)
     else:
-        df.to_pickle(pickle_name)
+        Info_df.to_pickle(PICKLE_NAME)

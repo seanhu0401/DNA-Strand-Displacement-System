@@ -305,6 +305,7 @@ def group_generation(
     return sample_group, presented_groups
 
 
+# TODO: Simplify this function
 def data_combination(
     fn: str,
     ext: str,
@@ -324,7 +325,7 @@ def data_combination(
     ext : str
         The file extension used for searching with glob.glob
 
-    groups: int
+    groups: intzr
         The number of groups in the trial
 
     cdata_path : str

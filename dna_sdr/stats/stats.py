@@ -19,7 +19,7 @@ from statsmodels.formula.api import ols
 
 
 def __array_to_df(
-    data: np.array,
+    data: np.ndarray,
     condition: list,
     group_name: str = "group",
     value_name: str = "value",
@@ -53,7 +53,7 @@ def __array_to_df(
     else:
         groups = condition
 
-    group_label = ""
+    group_label = str()
     for index, group in enumerate(data):
         condition = [str(groups[index])]
         label = condition * len(group)
@@ -98,7 +98,7 @@ def p_value_printout(p_value: float, alpha: float = 0.05):
         print("The null hypothesis is not rejected")
 
 
-def fence_rule(data: np.array):
+def fence_rule(data: np.ndarray):
     """
     Outlier detection function utilizing the fence rule (1.5x IQR).
     The function determine how many potential outliers are presented and returns
@@ -106,7 +106,7 @@ def fence_rule(data: np.array):
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
         The input data
 
     Returns
@@ -128,14 +128,14 @@ def fence_rule(data: np.array):
     return fence_in, fence_out_count
 
 
-def modified_z_score(data: np.array):
+def modified_z_score(data: np.ndarray):
     """
     Calculating the modified z-score for the data set baed on the mediam absolute deviation of the
     data set
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
         The input data
 
     Returns
@@ -151,14 +151,14 @@ def modified_z_score(data: np.array):
     return mod_zs
 
 
-def general_esd(data: np.array, poss_outlier_count: int = 5, alpha: float = 0.05):
+def general_esd(data: np.ndarray, poss_outlier_count: int = 5, alpha: float = 0.05):
     """
     The general extreme standard deviation (ESD) method for outlier detection. This method
     is suitable if the data without the outliers are normally distributed.
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
         The input data
 
     poss_outlier_count : int
@@ -387,13 +387,13 @@ def anova_test(
         print("")
 
 
-def kw_test(data: np.array, parameter: str, alpha: float = 0.05):
+def kw_test(data: np.ndarray, parameter: str, alpha: float = 0.05):
     """
     xxx
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
 
 
     parameter: str
@@ -425,13 +425,13 @@ def kw_test(data: np.array, parameter: str, alpha: float = 0.05):
     return result, p_value
 
 
-def dunn_test(data, conditions: list, adj_method: str = "hs"):
+def dunn_test(data: np.ndarray, conditions: list, adj_method: str = "hs"):
     """
     xxx
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
 
     conditions: list
 
@@ -494,13 +494,13 @@ def dunn_test(data, conditions: list, adj_method: str = "hs"):
     return result_table
 
 
-def conover_iman_test(data, conditions: list, adj_method: str = "hs"):
+def conover_iman_test(data: np.ndarray, conditions: list, adj_method: str = "hs"):
     """
     xxx
 
     Parameters
     ----------
-    data : np.array
+    data : np.ndarray
 
     condition: list
 
@@ -607,7 +607,9 @@ def data_dist_plot(data: pd.DataFrame, mode: str):
     plt.show()
 
 
-def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
+def parameter_array(
+    data: pd.DataFrame, mode: str, analysis_target: list[str]
+) -> tuple[list, list] | list:
     """
     xxx
 
@@ -635,12 +637,11 @@ def parameter_array(data: pd.DataFrame, mode: str, analysis_target: list):
             plateau_lst.append(target_df["plateau"].to_numpy())
         return rate_lst, plateau_lst
 
-    else:
-        rate_lst = []
-        for target in analysis_target:
-            target_df = data[data["plate_loc"] == target]
-            rate_lst.append(target_df["k_rate"].to_numpy())
-        return rate_lst
+    rate_lst = []
+    for target in analysis_target:
+        target_df = data[data["plate_loc"] == target]
+        rate_lst.append(target_df["k_rate"].to_numpy())
+    return rate_lst
 
 
 def main(analysis_target: list, mode: str):

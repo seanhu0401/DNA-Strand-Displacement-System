@@ -1,13 +1,26 @@
+"""
+Module docstring
+"""
 import matplotlib.pyplot as plt
-import dna_sdr.sequence.seq_utilits as seq_utilits
+from dna_sdr.sequence import seq_utilits
 from dna_sdr.sequence.dna_utilits import DNA
 
 marker_dict = {1: ".", 2: "x", 3: "s", 4: "|"}
 
 
-def mismatched_maker_gen(comparision_dict: dict):
+def mismatched_maker_gen(comparision_dict: dict[int, int]) -> dict:
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     mismatched_loc = {k: v for k, v in comparision_dict.items() if v != 0}
-    mismatched_maker_dict = dict()
+    mismatched_maker_dict = {}
 
     for k, v in mismatched_loc.items():
         mismatched_maker_dict[k] = marker_dict[v]
@@ -15,7 +28,17 @@ def mismatched_maker_gen(comparision_dict: dict):
     return mismatched_maker_dict
 
 
-def seq_comp_plot(seq_1, seq_2, ax=None):
+def seq_comp_plot(seq_1: str, seq_2: str, ax=None):
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     if ax is None:
         ax = plt.gca()
 
@@ -42,7 +65,7 @@ def seq_comp_plot(seq_1, seq_2, ax=None):
 
 
 if __name__ == "__main__":
-    t1 = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
-    t2 = "CA TAACA CA TCT TT CAATC CA TCT CA CAGCC CA"
-    ax = seq_comp_plot(t1, t2)
+    T1 = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+    T2 = "CA TAACA CA TCT TT CAATC CA TCT CA CAGCC CA"
+    plot = seq_comp_plot(T1, T2)
     plt.show()

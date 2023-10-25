@@ -1,8 +1,10 @@
-import os, pickle
-import numpy as np
+"""
+Module Docstrging
+"""
+import os
+import pickle
 import matplotlib.pyplot as plt
-from dna_sdr.fitting.fit import one_phase_association, kin_fit
-from dna_sdr.data_process.list_generation import time_list_generation
+from dna_sdr.experimental.data_processing import time_list_generation
 
 plt.rc("xtick", labelsize=12)
 plt.rc("ytick", labelsize=12)
@@ -23,7 +25,25 @@ CB_color_cycle = [
 ]
 
 
-def fit_plot(test, fit_cond, x, result, condition=None, color="#377eb8", ax=None):
+def fit_plot(
+    test: str,
+    fit_cond: str,
+    x_axis: list[float],
+    result,
+    condition: str | None = None,
+    color="#377eb8",
+    ax=None,
+):
+    """
+    xxx
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
     if ax is None:
         ax = plt.gca()
 
@@ -31,65 +51,46 @@ def fit_plot(test, fit_cond, x, result, condition=None, color="#377eb8", ax=None
     uncertainty = result.eval_uncertainty(sigma=3)
     error = 1 / result.weights
 
-    if test == "Conc":
-        ax.errorbar(
-            x,
-            data,
-            error,
-            elinewidth=1,
-            capsize=3,
-            fmt="o",
-            label="{}%".format(condition.split("_")[-1]),
-            color=color,
-        )
-        ax.plot(x, result.best_fit, "--", color="#ff7f00")
-        ax.fill_between(
-            x,
-            result.best_fit - uncertainty,
-            result.best_fit + uncertainty,
-            color="#ABABAB",
-        )
+    if condition is None:
+        label = "exp."
+    else:
+        if test == "Conc":
+            label = f"{condition.split('_')[-1]}%"
+        elif test == "Ratio":
+            label = f"{condition.split('_')[-2]}/{condition.split('_')[-1]}"
+        else:
+            raise ValueError()
 
-    elif test == "Screen":
-        ax.errorbar(
-            x, data, error, elinewidth=1, capsize=3, fmt="o", label="exp.", color=color
-        )
-        ax.fill_between(
-            x,
-            result.best_fit - uncertainty,
-            result.best_fit + uncertainty,
-            color="#ABABAB",
-            label="3-$\sigma$ uncertainty band",
-        )
-        ax.plot(x, result.best_fit, "--", label=fit_cond, color="#ff7f00")
-        ax.text(
-            0.95,
-            0.1,
-            "r$^2$ = {:2f}".format(result.rsquared),
-            verticalalignment="bottom",
-            horizontalalignment="right",
-            transform=ax.transAxes,
-            fontsize=15,
-        )
+    ax.errorbar(
+        x_axis,
+        data,
+        error,
+        elinewidth=1,
+        capsize=3,
+        fmt="o",
+        label=label,
+        color=color,
+    )
 
-    elif test == "Ratio":
-        ax.errorbar(
-            x,
-            data,
-            error,
-            elinewidth=1,
-            capsize=3,
-            fmt="o",
-            label="{}/{}".format(condition.split("_")[-2], condition.split("_")[-1]),
-            color=color,
-        )
-        ax.plot(x, result.best_fit, "--", color="#ff7f00")
-        ax.fill_between(
-            x,
-            result.best_fit - uncertainty,
-            result.best_fit + uncertainty,
-            color="#ABABAB",
-        )
+    ax.fill_between(
+        x_axis,
+        result.best_fit - uncertainty,
+        result.best_fit + uncertainty,
+        color="#ABABAB",
+        label="3-$\sigma$ uncertainty band",
+    )
+
+    ax.plot(x_axis, result.best_fit, "--", label=fit_cond, color="#ff7f00")
+
+    ax.text(
+        0.95,
+        0.1,
+        f"r$^2$ = {result.rsquared:2f}",
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        transform=ax.transAxes,
+        fontsize=15,
+    )
 
     ax.set_ylabel("Release (nM)")
     ax.set_xlabel("Time (min)")
@@ -99,20 +100,17 @@ def fit_plot(test, fit_cond, x, result, condition=None, color="#377eb8", ax=None
 if __name__ == "__main__":
     os.chdir("./dna_sdr/pickles/")
     time = time_list_generation(60)
-    test = "Screen"
+    TEST = "Screen"
 
-    with open("{}_one_phase_result.pkl".format(test), "rb") as one_phase_assoc:
+    with open(f"{TEST}_one_phase_result.pkl", "rb") as one_phase_assoc:
         one_phase = pickle.load(one_phase_assoc)
 
-    with open("{}_first_kinetic_result.pkl".format(test), "rb") as kin:
-        first_kine = pickle.load(kin)
-
-    with open("{}_second_kinetic_result.pkl".format(test), "rb") as kin:
+    with open(f"{TEST}_second_kinetic_result.pkl", "rb") as kin:
         sec_kine = pickle.load(kin)
 
-    if test == "Conc":
-        filter_one_phase_lst = list()
-        filter_kine_lst = list()
+    if TEST == "Conc":
+        filter_one_phase_lst = []
+        filter_kine_lst = []
         x = ["_".join(condition.split("_")[:2]) for condition in one_phase]
         con = [*set(x)]
         for item in con:
@@ -125,35 +123,35 @@ if __name__ == "__main__":
             }
             filter_kine_lst.append(filtered_kin)
 
-        for set in range(len(filter_one_phase_lst)):
+        for index, conditions in enumerate(filter_one_phase_lst):
             fig, (ax1, ax2) = plt.subplots(1, 2)
-            counter = 0
-            for condition in filter_one_phase_lst[set].keys():
-                one_phase_result = filter_one_phase_lst[set][condition]
-                kine_result = filter_kine_lst[set][condition]
+            COUNTER = 0
+            for condition in conditions.keys():
+                one_phase_result = conditions[condition]
+                kine_result = filter_kine_lst[index][condition]
                 fit_plot(
-                    test,
+                    TEST,
                     "one phase assoc.",
                     time,
                     one_phase_result,
                     condition,
-                    color=CB_color_cycle[counter],
+                    color=CB_color_cycle[COUNTER],
                     ax=ax1,
                 )
                 fit_plot(
-                    test,
+                    TEST,
                     "kinetic",
                     time,
                     kine_result,
                     condition,
-                    color=CB_color_cycle[counter],
+                    color=CB_color_cycle[COUNTER],
                     ax=ax2,
                 )
                 ax1.set_title("One phase association")
                 ax2.set_title("kinetic")
                 ax1.legend()
                 ax2.legend()
-                counter += 1
+                COUNTER += 1
 
             fig.suptitle("_".join(condition.split("_")[0:2]))
             fig.set_figheight(9)
@@ -162,28 +160,25 @@ if __name__ == "__main__":
             plt.show()
             # plt.close()
 
-    elif test == "Screen":
+    elif TEST == "Screen":
         for condition in one_phase:
             result_one_phase = one_phase[condition]
-            result_first_kin = first_kine[condition]
             result_sec_kin = sec_kine[condition]
 
-            fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
-            fit_plot(test, "one phase assoc.", time, result_one_phase, ax=ax1)
-            fit_plot(test, "first order kinetic", time, result_first_kin, ax=ax2)
-            fit_plot(test, "second order kinetic", time, result_sec_kin, ax=ax3)
+            fig, (ax1, ax2) = plt.subplots(2, 1)
+            fit_plot(TEST, "one phase assoc.", time, result_one_phase, ax=ax1)
+            fit_plot(TEST, "second order kinetic", time, result_sec_kin, ax=ax2)
 
             fig.suptitle(condition)
             fig.set_figheight(9)
             fig.set_figwidth(16)
             ax1.legend()
             ax2.legend()
-            ax3.legend()
             # fig.savefig("./{}/{}.svg".format(test, condition), format="svg")
             plt.show()
             # plt.close()
 
-    elif test == "Ratio":
+    elif TEST == "Ratio":
         filter_one_phase_lst = list()
         filter_kine_lst = list()
         x = ["_".join(condition.split("_")[:4]) for condition in one_phase]
@@ -200,33 +195,33 @@ if __name__ == "__main__":
 
         for set in range(len(filter_one_phase_lst)):
             fig, (ax1, ax2) = plt.subplots(1, 2)
-            counter = 0
+            COUNTER = 0
             for condition in filter_one_phase_lst[set].keys():
                 one_phase_result = filter_one_phase_lst[set][condition]
                 kine_result = filter_kine_lst[set][condition]
                 fit_plot(
-                    test,
+                    TEST,
                     "one phase assoc.",
                     time,
                     one_phase_result,
                     condition,
-                    color=CB_color_cycle[counter],
+                    color=CB_color_cycle[COUNTER],
                     ax=ax1,
                 )
                 fit_plot(
-                    test,
+                    TEST,
                     "kinetic",
                     time,
                     kine_result,
                     condition,
-                    color=CB_color_cycle[counter],
+                    color=CB_color_cycle[COUNTER],
                     ax=ax2,
                 )
                 ax1.set_title("One phase association")
                 ax2.set_title("kinetic")
                 ax1.legend()
                 ax2.legend()
-                counter += 1
+                COUNTER += 1
 
             fig.suptitle("_".join(condition.split("_")[0:4]))
             fig.set_figheight(9)
