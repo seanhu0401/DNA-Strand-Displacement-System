@@ -1,5 +1,4 @@
 IO
-nupack-4.0.0.27
 Ignore
 __pycache__
 .venv
@@ -13,3 +12,8 @@ pickles
 *.csv
 image
 *.ipynb
+
+# Nupack + Nupack test files
+nupack*
+blah
+design-checkpoint
