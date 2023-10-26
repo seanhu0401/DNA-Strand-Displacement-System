@@ -195,7 +195,7 @@ def name_generation(
 
 
 def seq_info(
-    fname: str, trig1="CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+    fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
 ) -> pd.DataFrame:
     """
     xxx
@@ -214,6 +214,7 @@ def seq_info(
         dna_seq_df = pd.read_excel(fname, sheet_name=sname)
         loc_df = dna_seq_df.filter(regex=r"P\d Location", axis=1)
         dna_seq = dna_seq_df["Seqences (5' to 3')"]
+        plate_loc = str()
         for count in range(len(dna_seq)):
             location = loc_df.iloc[count].dropna()
             for well in location:

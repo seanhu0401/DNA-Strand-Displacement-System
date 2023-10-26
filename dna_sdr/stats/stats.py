@@ -29,7 +29,7 @@ def __array_to_df(
 
     Parameters
     ----------
-    data : np.array
+    data : np.narray
         The input data
     condition : list
         A list of condition presented

@@ -178,9 +178,7 @@ def ind_fit(file: str, equation: str, labels: list[str]):
     full_result_dict :
 
     """
-    df: pd.DataFrame = pd.read_pickle(
-        file
-    )  # read the stored pickle file into dataframe
+    df: pd.DataFrame = pd.read_pickle(file)
     name = file.split(".")[0]
     cond = "_".join(name.split("_")[-2:])
 
