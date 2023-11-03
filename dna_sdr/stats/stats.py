@@ -9,6 +9,7 @@ import os
 import itertools as it
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -98,7 +99,7 @@ def p_value_printout(p_value: float, alpha: float = 0.05):
         print("The null hypothesis is not rejected")
 
 
-def fence_rule(data: np.ndarray):
+def fence_rule(data: NDArray):
     """
     Outlier detection function utilizing the fence rule (1.5x IQR).
     The function determine how many potential outliers are presented and returns
@@ -128,7 +129,7 @@ def fence_rule(data: np.ndarray):
     return fence_in, fence_out_count
 
 
-def modified_z_score(data: np.ndarray):
+def modified_z_score(data: NDArray):
     """
     Calculating the modified z-score for the data set baed on the mediam absolute deviation of the
     data set
@@ -151,7 +152,7 @@ def modified_z_score(data: np.ndarray):
     return mod_zs
 
 
-def general_esd(data: np.ndarray, poss_outlier_count: int = 5, alpha: float = 0.05):
+def general_esd(data: NDArray, poss_outlier_count: int = 5, alpha: float = 0.05):
     """
     The general extreme standard deviation (ESD) method for outlier detection. This method
     is suitable if the data without the outliers are normally distributed.
@@ -193,11 +194,6 @@ def general_esd(data: np.ndarray, poss_outlier_count: int = 5, alpha: float = 0.
         deno = np.sqrt((degree_freedom + t_distribution**2) * sample_count)
         crit_value = num / deno
         return crit_value
-
-    try:
-        data = data.to_numpy()
-    except AttributeError:
-        pass
 
     index_lst = []
     max_index = 0
@@ -368,9 +364,9 @@ def anova_test(
     print(f"The W stats is {wstats:.4f}")
     p_value_printout(pvalue)
 
-    fig = plt.figure(figsize=(10, 10))
-    stats.probplot(model_fit.resid, plot=fig, rvalue=True)
-    fig.set_title("Probability plot of model's residuals", fontsize=20)
+    ax = plt.subplot(111)
+    stats.probplot(model_fit.resid, plot=ax, rvalue=True)
+    ax.set_title("Probability plot of model's residuals", fontsize=20)
     plt.show()
 
     print("")
