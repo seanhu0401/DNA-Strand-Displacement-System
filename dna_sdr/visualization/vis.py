@@ -210,6 +210,7 @@ def release_grid_plot(
     data: pd.Series,
     result,
     max_value: float,
+    time: list[float] | None = None,
     ax=None,
     props: dict[str, str | float] | None = None,
 ):
@@ -233,8 +234,9 @@ def release_grid_plot(
             "alpha": 0.5,
         }
 
-    time = time_list_generation(60)
-    time.insert(0, 0)
+    if time is None:
+        time = time_list_generation(60)
+
     y_axis_range = np.arange(0, max_value + 50, 100)
 
     text_str = "\n".join(
