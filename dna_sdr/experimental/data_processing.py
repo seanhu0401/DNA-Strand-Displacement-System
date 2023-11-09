@@ -13,6 +13,24 @@ import regex as re
 import pandas as pd
 
 
+def _control_tube_location(
+    file: str, groups: int
+) -> tuple[tuple[int, int], list[str], bool]:
+    if file.split(".")[0].split("_")[-1] == "RC":
+        pos_con_tube_number = (groups * 4) + 1
+        neg_con_tube_number = pos_con_tube_number + 4
+        read_columns = [str(i) for i in range(1, neg_con_tube_number + 4)]
+        reverse_control = True
+        print(f"This file contained the study with the reversed control order: {file}")
+    else:
+        neg_con_tube_number = (groups * 4) + 1
+        pos_con_tube_number = neg_con_tube_number + 4
+        read_columns = [str(i) for i in range(1, pos_con_tube_number + 4)]
+        reverse_control = False
+    read_columns.insert(0, "Cycle")
+    return (neg_con_tube_number, pos_con_tube_number), read_columns, reverse_control
+
+
 def trig_list_gen(fname_list: list[str]) -> list[str]:
     """
     Generate a list of triggers that are presented within the specific test file.
@@ -32,24 +50,26 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
     re_query = r"[a-zA-Z]\d\d"
     for fname in fname_list:
         split_name = fname.split(".")[0].split("_")
+        test_type = split_name[2]
         match = re.findall(re_query, fname)
+        trig_type = ""
+        plate_number_1 = split_name[3]
 
-        if split_name[2] != "Ratio":
-            plate_number = split_name[3]
-            trig_type = plate_number + "_" + "_".join(match)
+        if test_type in {"Screen", "Conc"}:
+            trigs = "_".join(match)
+            trig_type = f"{plate_number_1}_{trigs}"
+            if test_type == "Conc":
+                option = split_name[5]
+                trig_type = f"{plate_number_1}_{trigs}_{option}"
 
-            if trig_type not in trig_list:
-                trig_list.append(trig_type)
-
-        elif split_name[2] == "Ratio":
-            plate_number_1 = split_name[3]
+        elif test_type == "Ratio":
             plate_number_2 = split_name[5]
             trig_type = (
                 plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
             )
 
-            if trig_type not in trig_list:
-                trig_list.append(trig_type)
+        if trig_type and trig_type not in trig_list:
+            trig_list.append(trig_type)
 
     return trig_list
 
@@ -87,7 +107,7 @@ def file_path_generation(
 
     """
     pickle_extension = "pkl"
-    pickle_save_path = "../Output/Pickles"
+    pickle_save_path = "../Output/Group/"
     parent_dir = "../Processed/"
 
     if test_type in {"Ratio", "Screen", "Conc"}:
@@ -227,7 +247,7 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
             group_lst = ["T1_" + str(conc) for conc in conc_lst]
         else:
             name_lst = [
-                f"{split_fname[2]}_{match[0]}_" + str(conc) for conc in conc_lst
+                f"{split_fname[3]}_{match[0]}_" + str(conc) for conc in conc_lst
             ]
             group_lst.extend(name_lst)
         group_quant = len(group_lst)
@@ -305,13 +325,11 @@ def group_generation(
     return sample_group, presented_groups
 
 
-# TODO: Simplify this function
 def data_combination(
     fn: str,
     ext: str,
     groups: int,
     cdata_path: str,
-    opt: str | None = None,
 ) -> pd.DataFrame:
     """
     Combine the data across differnt trials with same experiemtnal
@@ -325,7 +343,7 @@ def data_combination(
     ext : str
         The file extension used for searching with glob.glob
 
-    groups: intzr
+    groups: int
         The number of groups in the trial
 
     cdata_path : str
@@ -341,45 +359,9 @@ def data_combination(
         The combined dataframe for the trials with the same testing conditions.
 
     """
-    # initial data after subtraction of baseline and data cleaning
-    count = 0
-    print(fn)
-    test_type = fn.split("_")[2]
-    query_str = fn + f"*.{ext}"
-    if test_type == "Conc":
-        query_str = f"{fn}_{opt}_*.{ext}"
 
-    combined_df = pd.DataFrame()
-    time_lst_min = time_list_generation(60)
-    for file in glob.glob(query_str):
-        if test_type == "Screen":
-            # Check if the file has the positive and negative control tube location reversed
-            if file.split(".")[0].split("_")[-1] == "RC":
-                pos_con_tube_number = (groups * 4) + 1
-                neg_con_tube_number = pos_con_tube_number + 4
-                col_read = [str(i) for i in range(1, neg_con_tube_number + 4)]
-                reverse_control = True
-                print(
-                    f"This file contained the study with the reversed control order: {file}"
-                )
-
-            else:
-                neg_con_tube_number = (groups * 4) + 1
-                pos_con_tube_number = neg_con_tube_number + 4
-                col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
-                reverse_control = False
-
-        elif test_type in {"Conc", "Ratio"}:
-            neg_con_tube_number = (groups * 4) + 1
-            pos_con_tube_number = neg_con_tube_number + 4
-            col_read = [str(i) for i in range(1, pos_con_tube_number + 4)]
-            reverse_control = False
-
-        else:
-            print(f"The current file name is {fn}")
-            raise ValueError(f"The test type is unknown - {test_type}")
-
-        col_read.insert(0, "Cycle")
+    def processing(file: str, groups: int) -> pd.DataFrame:
+        (control_tube, col_read, reverse_control) = _control_tube_location(file, groups)
 
         # Read the current csv file with the predefined column names
         print(f"currently reading file: {file}")
@@ -387,33 +369,34 @@ def data_combination(
         df.insert(1, "time (min)", time_lst_min, True)
         df.set_index("Cycle", inplace=True)
         avg_neg_control = df.iloc[
-            :, list(range(neg_con_tube_number, neg_con_tube_number + 4))
+            :, list(range(control_tube[0], control_tube[0] + 4))
         ].mean(axis=1)
-        pos_control = df.iloc[
-            :, list(range(pos_con_tube_number, pos_con_tube_number + 4))
-        ]
+        pos_control = df.iloc[:, list(range(control_tube[1], control_tube[1] + 4))]
         pos_control_minus_baseline = pos_control.subtract(avg_neg_control, axis=0)
         avg_pos_control_minus_baseline = pos_control_minus_baseline.mean(axis=1)
 
         if reverse_control:
-            data = df.iloc[:, list(range(1, pos_con_tube_number))]
+            data = df.iloc[:, list(range(1, control_tube[1]))]
         else:
-            data = df.iloc[:, list(range(1, neg_con_tube_number))]
+            data = df.iloc[:, list(range(1, control_tube[0]))]
 
         data_minus_baseline = data.subtract(avg_neg_control, axis=0)
+        only_starter = starter(data_minus_baseline, avg_pos_control_minus_baseline)
+        return only_starter
 
-        # Finding the files that matches the condition,
-        # combine them together and divide by the avg positive control
-
-        norm_data = data_minus_baseline.div(avg_pos_control_minus_baseline, axis=0)
-
+    # TODO: Read over the condition
+    def starter(
+        dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
+    ) -> pd.DataFrame:
+        """
+        Drop the samples that did not started by cycle 3 and change in values between
+        initial and cycle 4 is less than 0.05
+        """
+        norm_data = dataframe.div(avg_pos_control_minus_baseline, axis=0)
         final_value = norm_data.iloc[-1, :]
         ind_norm_data = norm_data.div(final_value, axis=1)
 
-        # Drop the samples that did not started by cycle 3 and change in
-        # values between initial and cycle 4 is less than 0.05
-
-        drop_col = []
+        drop_columns = []
         for col in range(len(ind_norm_data.columns)):
             loc_0 = ind_norm_data.iloc[0, col]
             loc_3 = ind_norm_data.iloc[3, col]
@@ -425,27 +408,41 @@ def data_combination(
                 and isinstance(loc_4, float)
             ):
                 if loc_4 - loc_0 < 0.05 and loc_3 < 0:
-                    drop_col.append(str(col + 1))
+                    drop_columns.append(str(col + 1))
             else:
                 raise ValueError()
+        print(drop_columns)
+        dataframe.drop(columns=drop_columns, inplace=True)
+        return dataframe
 
-        print(drop_col)
-        norm_data.drop(columns=drop_col, inplace=True)
+    # initial data after subtraction of baseline and data cleaning
+    count = 0
+    test_type = fn.split("_")[2]
+    if test_type not in {"Screen", "Conc", "Ratio"}:
+        print(f"The current file name is {fn}")
+        raise ValueError(f"The test type is unknown - {test_type}")
 
-        # check if there are existing file for the condition.
-        # If there is, append the new data to it, else create a new dataframe and export afterward.
+    combined_df = pd.DataFrame()
+    time_lst_min = time_list_generation(60)
+    query_str = fn + f"*.{ext}"
+
+    for file in glob.glob(query_str):
+        starter_only = processing(file, groups)
         if count == 0:
-            if not os.path.exists(cdata_path):
-                combined_df = norm_data
-            else:
-                combined_df = pd.read_pickle(cdata_path)
-                if not combined_df.equal(norm_data):
-                    combined_df = pd.concat([combined_df, norm_data], axis=1)
+            combined_df = starter_only
         else:
-            combined_df = pd.concat([combined_df, norm_data], axis=1)
+            combined_df = pd.concat([combined_df, starter_only], axis=1)
         count += 1
 
-        combined_df.to_pickle(cdata_path)
+    # TODO: Check if we need to export the df into a pickle file
+    # check if there are existing file for the condition.
+    # If there is, append the new data to it, else create a new dataframe and export afterward.
+    if os.path.exists(cdata_path):
+        exist_df = pd.read_pickle(cdata_path)
+        if not exist_df.equals(combined_df):
+            combined_df = pd.concat([exist_df, combined_df], axis=1)
+
+    combined_df.to_pickle(cdata_path)
 
     return combined_df
 
@@ -492,7 +489,7 @@ def data_average(
     group_dict: dict,
     presented_groups: list,
     sdata_path: str,
-) -> pd.DataFrame:
+) -> None:
     """
     Calculate basic stats for the normalized data and combined them into one dataframe
 
@@ -512,11 +509,6 @@ def data_average(
 
     sdata_path : str
         The path for saving the combined and normalized dataframe in pickle format
-
-    Returns
-    -------
-    norm_combined_data_df : pd.DataFrame
-        The combined and normalized dataframe
 
     """
 
@@ -546,10 +538,8 @@ def data_average(
     # export the combined file for storage + quick access
     norm_combined_data_df.to_pickle(sdata_path)
 
-    return norm_combined_data_df
 
-
-def data_summerization(path: str) -> None:
+def data_summerization(path: str, test_type: str) -> None:
     """
     Combine the same test condition from screening study into one file.
 
@@ -558,31 +548,49 @@ def data_summerization(path: str) -> None:
     path : str
         The location where the normalized pickle files are stored
 
-    """
-    os.chdir(path)
-    t1_lst = []
-    for fname in glob.glob("*" + "Screen" + "*_normalized.pkl"):
-        print(fname)
-        plate_num = fname.split("_")[3]
-        groups, group_lst = group_query(fname)
-        non_t1_cond = [f"{plate_num}_{i}" for i in group_lst if i != "T1"]
+    test_type : str
+        The test type condition - currently has concentration (Conc),
+        screening (Screen), and ratio (Ratio).
 
-        df = pd.read_pickle(fname)
+    """
+    t1_lst = []
+    search_str = f"*_{test_type}_*_normalized.pkl"
+    for location in glob.glob(os.path.join(path, search_str)):
+        fname = location.split("/")[-1]
+        print(fname)
+        if test_type == "Conc":
+            groups, group_lst = group_query(fname, fname.split("_")[5])
+            non_t1_cond = [i for i in group_lst if "T1" not in i]
+        else:
+            groups, group_lst = group_query(fname)
+            non_t1_cond = [
+                f"{fname.split('_')[3]}_{i}" for i in group_lst if "T1" not in i
+            ]
+        t1_cond = [i for i in group_lst if "T1" in i]
+
+        df = pd.read_pickle(location)
         _, presented = group_generation(df, (groups * 4 + 1))
-        presented_dict = dict(zip(non_t1_cond, presented[1:]))
+        if len(t1_cond) > 1:
+            presented_dict = dict(zip(t1_cond, presented))
+        else:
+            presented_dict = dict(zip(non_t1_cond, presented[1:]))
+            t1_lst.append(df.loc[:, ["1", "2", "3", "4"]])
 
         for k, v in presented_dict.items():
             filtered_df = df.loc[:, v]
-            filtered_df.to_pickle(f"./Individual/4WJ_HEX_Screen_{k}.pkl")
-
-        t1_lst.append(df.loc[:, ["1", "2", "3", "4"]])
+            filtered_df.to_pickle(
+                os.path.join(
+                    os.getcwd(),
+                    f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_{k}.pkl",
+                )
+            )
 
     t1_df = pd.concat(t1_lst, axis=1, ignore_index=False)
-    t1_df.to_pickle("./Individual/4WJ_HEX_Screen_P0_T1.pkl")
-    sum_t1_df = pd.DataFrame(
-        dict(zip(["mean", "std"], [t1_df.mean(axis=1), t1_df.std(axis=1)]))
+    t1_df.to_pickle(
+        os.path.join(
+            os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+        )
     )
-    sum_t1_df.to_pickle("./Individual/4WJ_HEX_Screen_P0_T1_summarized.pkl")
 
 
 def parameter(path: str) -> None:
@@ -617,3 +625,8 @@ def parameter(path: str) -> None:
 
     param_df = pd.merge(trig_curve_param_df, trig_kin_param_df, on="plate_loc")
     param_df.to_pickle("trig_param.pkl")
+
+
+if __name__ == "__main__":
+    print()
+    # data_summerization("./dna_sdr/IO/Output/Group/", "Conc")

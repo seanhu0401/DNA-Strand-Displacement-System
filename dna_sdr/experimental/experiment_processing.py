@@ -8,12 +8,11 @@ test type.
 import glob
 import os
 import shutil
-import regex as re
-import pandas as pd
 import dna_sdr.experimental.data_processing as dp
 
 
-def file_search(ext: str, test_type: str) -> tuple[dict[int, str], list[str]]:
+# * Potentially add the option arg here for conc. study
+def file_search(test_type: str, ext: str = "csv") -> tuple[dict[int, str], list[str]]:
     """
     xxx
 
@@ -75,9 +74,7 @@ def trig_selection(trig_type_dict: dict[int, str]) -> str:
     return selected_trig
 
 
-def exp_data_processing(
-    test_type: str, trigger_selected: str, file_list: list[str], ext: str
-) -> None:
+def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None:
     """
     xxx
 
@@ -87,34 +84,13 @@ def exp_data_processing(
 
     trigger_selected : str
 
-    Returns
-    -------
-    selected_trig : str
-
     """
-
-    def _concentration_study() -> tuple[int, list[str], pd.DataFrame]:
-        fn_lst = [f for f in file_list if re.match(paths[0] + "_*", f)]
-
-        lower_len = len([f for f in fn_lst if re.match(r"\w*_under", f)])
-        upper_len = len([f for f in fn_lst if re.match(r"\w*_over", f)])
-        if len(fn_lst) == lower_len:
-            option = "under"
-        elif len(fn_lst) == upper_len:
-            option = "over"
-        else:
-            raise ValueError()
-        groups, group_list = dp.group_query(paths[0], option)
-        combined_data_df = dp.data_combination(
-            paths[0], ext, groups, paths[1], opt=option
-        )
-        return groups, group_list, combined_data_df
 
     # Save file path generation
     # path[0] = fname
     # path[1] = combined_data_path
     # path[2] = norm_cdata_path
-    # path[3] = sum_data_pathghfj
+    # path[3] = sum_data_path
     # path[4] = processed_path
     paths = dp.file_path_generation(test_type, trigger_selected)
     time_list_mins = dp.time_list_generation(60)
@@ -123,29 +99,28 @@ def exp_data_processing(
         raise ValueError()
 
     if test_type == "Conc":
-        groups, group_list, combined_data_df = _concentration_study()
+        option = trigger_selected.split("_")[-1]
+        groups, group_list = dp.group_query(paths[0], option)
     else:
         groups, group_list = dp.group_query(paths[0])
-        # Combined the data together and check for conditions that are not accurate
-        # after normalization with the positive and negative control and generate a
-        # combined data dataframe for further analysis.
-        combined_data_df = dp.data_combination(paths[0], ext, groups, paths[1])
 
-    group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
+    # Combined the data together and check for conditions that are not accurate
+    # after subtracting the negative control and generate a combined data dataframe for
+    # further analysis.
+    combined_data_df = dp.data_combination(paths[0], ext, groups, paths[1])
 
     # Generate the groups presented in the combined data dataframe
+    group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
     group_of_samples, presented_groups = dp.group_generation(
         combined_data_df, (groups * 4 + 1)
     )
 
-    # Normalized the dataframe fo combined data with standard release value (T1) and
-    # export the dataframe into csv and/or pickle files for storage and quicker access
-    # in Python
+    # Normalized the dataframe fo combined data with standard release value (T1) and export
+    # into a pickle file for storage.
     norm_data_df = dp.data_normalization(combined_data_df, group_of_samples, paths[2])
 
     # Combine the values from norm_data_df to calculate average and standard devaition of
-    # each condition and combined it all into one dataframe. Export the dataframe into
-    # csv and/or pickle files for storage and quicker access in Python
+    # each condition and combined it all into one dataframe.
     dp.data_average(
         norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
     )
@@ -160,4 +135,24 @@ def exp_data_processing(
         print(f"Folder name: {paths[4]} already exists.")
 
     for f in glob.glob(paths[0] + f"*.{ext}"):
-        shutil.move(os.getcwd() + f, paths[4] + "/" + f)
+        shutil.move(os.path.join(os.getcwd(), f), os.path.join(paths[4], f))
+
+
+def main(test: str):
+    """
+    xxx
+
+    Parameters
+    ----------
+    test : str
+
+
+    """
+    t_dict, _ = file_search(test)
+    trig = trig_selection(t_dict)
+    exp_data_processing(test, trig, "csv")
+
+
+if __name__ == "__main__":
+    TEST = "Conc"
+    main(TEST)
