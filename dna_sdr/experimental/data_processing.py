@@ -571,10 +571,9 @@ def data_summerization(path: str, test_type: str) -> None:
         df = pd.read_pickle(location)
         _, presented = group_generation(df, (groups * 4 + 1))
         if len(t1_cond) > 1:
-            presented_dict = dict(zip(t1_cond, presented))
+            presented_dict = dict(zip(t1_cond[1:], presented[1:]))
         else:
             presented_dict = dict(zip(non_t1_cond, presented[1:]))
-            t1_lst.append(df.loc[:, ["1", "2", "3", "4"]])
 
         for k, v in presented_dict.items():
             filtered_df = df.loc[:, v]
@@ -584,13 +583,22 @@ def data_summerization(path: str, test_type: str) -> None:
                     f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_{k}.pkl",
                 )
             )
+        t1_lst.append(df.loc[:, ["1", "2", "3", "4"]])
 
     t1_df = pd.concat(t1_lst, axis=1, ignore_index=False)
-    t1_df.to_pickle(
-        os.path.join(
-            os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+    if test_type == "Conc":
+        t1_df.to_pickle(
+            os.path.join(
+                os.getcwd(),
+                f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1_100.pkl",
+            )
         )
-    )
+    else:
+        t1_df.to_pickle(
+            os.path.join(
+                os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+            )
+        )
 
 
 def parameter(path: str) -> None:
