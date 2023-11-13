@@ -1,55 +1,82 @@
 """
 xxx
 """
-
 import os
 import glob
 import pickle
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import pylab
 from lmfit import Model
 from scipy.integrate import solve_ivp
 from dna_sdr.experimental.data_processing import time_list_generation
+from dna_sdr.visualization.vis import release_grid_plot
+
+plt_params = {
+    # "figure.figsize": [6.4, 4.8],
+    # "axes.labelsize": 24,
+    # "axes.titlesize": 16,
+    "axes.linewidth": 2,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.labelpad": 6,
+    "axes.formatter.use_mathtext": True,
+    "errorbar.capsize": 5,
+    "xtick.labelsize": 14,
+    "xtick.major.size": 6,
+    "xtick.major.width": 2,
+    "ytick.labelsize": 14,
+    "ytick.major.size": 6,
+    "ytick.major.width": 2,
+}
+pylab.rcParams.update(plt_params)
 
 
 def one_phase_association(time: float, plateau: float, k: float) -> float:
-    """
-    Define pseudo-first order association kinetics
+    """The function calculates the value of a one-phase association reaction over time.
 
     Parameters
     ----------
     time : float
-
+        The time parameter represents the time at which the association is being calculated. It is a float
+    value.
     plateau : float
-
+        The plateau is the maximum value that the function will approach as time goes to infinity.
     k : float
+        The parameter "k" represents the rate constant in the one-phase association equation. It determines
+    how quickly the association reaction occurs. A higher value of "k" indicates a faster association
+    rate.
 
     Returns
     -------
+        the result of the equation `plateau * (1 - np.exp(-k * time))`.
 
     """
     return plateau * (1 - np.exp(-k * time))
 
 
 def second_kinetic(t: list[float], y0: list[float], k: float) -> list[float]:
-    """
-    Define simplified system of ODE for SDR system
-
-    Second order irreversible reaction:
-    I + QT -> IT + Q
+    """The function `second_kinetic` defines a simplified system of ordinary differential equations (ODEs)
+    for a second order irreversible reaction.
 
     Parameters
     ----------
     t : list[float]
-
+        The parameter `t` is a list of time values at which you want to evaluate the ODEs. It represents
+    the time points at which you want to calculate the values of the variables in the system.
     y0 : list[float]
-
+        The parameter `y0` is a list of initial values for the variables in the system. In this case, the
+    variables are `I`, `QT`, `IT`, and `Q`. So `y0` should be a list of four floats representing the
+    initial values of these variables.
     k : float
+        The parameter `k` represents the rate constant for the second order irreversible reaction. It
+    determines the rate at which the reaction occurs.
 
     Returns
     -------
-    ode : list[float]
-
+        a list of floats, which represents the system of ordinary differential equations (ODEs) for the
+    given second order irreversible reaction.
 
     """
 
@@ -66,30 +93,35 @@ def second_kinetic(t: list[float], y0: list[float], k: float) -> list[float]:
 
 
 def sec_kin_fit(t: list[float], y0: list[float], k1: float) -> np.ndarray:
-    """
-    Fitting second order kinetic using IVP solver
+    """The function `sec_kin_fit` solves a second-order kinetic equation using the `solve_ivp` function and
+    returns the third element of the solution.
 
     Parameters
     ----------
     t : list[float]
-
+        A list of time values at which the solution is evaluated.
     y0 : list[float]
-
+        The parameter `y0` represents the initial conditions for the system of differential equations. In
+    this case, it is a list of initial values for the dependent variables in the system. The length of
+    `y0` should match the number of equations in the system.
     k1 : float
+        The parameter `k1` represents the rate constant for the second-order kinetic reaction. It
+    determines the rate at which the reaction proceeds.
 
     Returns
     -------
-
+        The function `sec_kin_fit` returns an `np.ndarray` which represents the third element of the
+    solution of the second order kinetic equation.
 
     """
     x = solve_ivp(
         second_kinetic,
-        (1, max(t) + 10),
+        (0, max(t) + 10),
         y0,
         t_eval=t,
         args=(k1,),
         rtol=1e-9,
-        method="LSODA",
+        method="RK45",
     )
     return x.y[2]
 
@@ -100,6 +132,31 @@ def _one_phase_fitting(
     labels: list[str],
     individual_fit: bool = False,
 ):
+    """The `_one_phase_fitting` function fits a one-phase association model to data and returns the fitting
+    result and a list of parameters.
+
+    Parameters
+    ----------
+    df : pd.DataFrame | pd.Series
+        The `df` parameter is a pandas DataFrame or Series that contains the data for fitting. It is used
+    to extract the mean and standard deviation values for fitting the model.
+    condition : str
+        The `condition` parameter is a string that represents a condition or group in your data. It is used
+    to filter and select specific columns from your DataFrame or Series.
+    labels : list[str]
+        The `labels` parameter is a list of strings that represents the labels for the output parameters.
+    These labels will be used to match the fit output with the corresponding equation.
+    individual_fit : bool, optional
+        A boolean parameter that determines whether to perform an individual fit for each trial or a group
+    fit for all trials together. If set to True, the function will fit the model to each trial
+    separately. If set to False, the function will fit the model to the mean values of all trials.
+
+    Returns
+    -------
+        two values: `result` and `params_group_list`.
+
+    """
+
     time_lst = time_list_generation(60)
     trial = df
     params_group_list = [condition]
@@ -133,10 +190,54 @@ def _one_phase_fitting(
 def _kinetic_fitting(
     df: pd.DataFrame | pd.Series,
     condition: str,
-    labels: list[str],
+    test_type: str = "Screen",
     individual_fit: bool = False,
+    labels: list[str] | None = None,
 ):
-    y0 = [500, 500, 0, 0]
+    """The `_kinetic_fitting` function performs kinetic fitting on a given dataset based on the specified
+    condition and test type, returning the fitting result and a list of fitting parameters.
+
+    Parameters
+    ----------
+    df : pd.DataFrame | pd.Series
+        The `df` parameter is a pandas DataFrame or Series that contains the data for fitting. It
+    represents the experimental data that you want to fit a kinetic model to.
+    condition : str
+        The `condition` parameter is a string that represents the condition under which the kinetic fitting
+    is performed. It is used to filter and process the data accordingly.
+    test_type : str, optional
+        The `test_type` parameter is a string that specifies the type of test being performed. It can have
+    one of three values: "Conc", "Screen", or "Ratio".
+    individual_fit : bool, optional
+        A boolean flag indicating whether to perform individual fits for each trial or a mean fit for all
+    trials combined.
+    labels : list[str] | None
+        The `labels` parameter is a list of strings that specifies the column labels for the output
+    DataFrame or Series. The default value is `None`, in which case the labels will be set to
+    `["Condition", "k_rate", "r_sq_kin", "k_error"]`.
+
+    Returns
+    -------
+        two values: `result` and `params_group_list`.
+
+    """
+    if labels is None:
+        labels = [
+            "Condition",
+            "k_rate",
+            "r_sq_kin",
+            "k_error",
+        ]
+
+    if not test_type in {"Conc", "Screen", "Ratio"}:
+        raise ValueError()
+
+    if test_type == "Conc":
+        factor = int(condition.split("_")[-1]) / 100
+        y0 = [500 * factor, 500, 0, 0]
+    else:
+        y0 = [500, 500, 0, 0]
+
     time_lst = time_list_generation(60)
     trial = df
     params_group_list = [condition]
@@ -160,27 +261,34 @@ def _kinetic_fitting(
 
 
 def ind_fit(file: str, equation: str, labels: list[str]):
-    """
-    xxx
+    """The `ind_fit` function reads a DataFrame from a pickle file, performs either one-phase or second
+    kinetic fitting on the data, and returns a list of parameter dictionaries and a dictionary of
+    fitting results.
 
     Parameters
     ----------
     file : str
-
+        The `file` parameter is a string that represents the file name or path of the pickle file that
+    contains the data to be processed.
     equation : str
-
-    lable : list[str]
+        _The `equation` parameter is a string that specifies the type of equation to use for fitting. It can
+    have two possible values: "one_phase" or "sec_kinetic".
+    labels : list[str]
+        The `labels` parameter is a list of strings that represents the labels or names for the different
+    parameter groups. These labels will be used to create a dictionary where each label is associated
+    with a list of parameter values.
 
     Returns
     -------
-    params_list :
-
-    full_result_dict :
+    _type_
+        _description_
 
     """
+
     df: pd.DataFrame = pd.read_pickle(file)
     name = file.split(".")[0]
     cond = "_".join(name.split("_")[-2:])
+    test_type = name.split("_")[2]
 
     params_list: list[dict[str, str]] = []
     full_result_dict = {}
@@ -190,7 +298,7 @@ def ind_fit(file: str, equation: str, labels: list[str]):
         if equation == "one_phase":
             result, params_group_list = _one_phase_fitting(trial, cond, labels, True)
         elif equation == "sec_kinetic":
-            result, params_group_list = _kinetic_fitting(trial, cond, labels, True)
+            result, params_group_list = _kinetic_fitting(trial, cond, test_type, True)
         else:
             raise ValueError()
 
@@ -207,32 +315,34 @@ def ind_fit(file: str, equation: str, labels: list[str]):
 
 
 def overall_fit(file: str, test: str, equation: str, labels: list[str]):
-    """
-    xxx
+    """The `overall_fit` function takes in a file, test type, equation type, and labels, and performs
+    fitting calculations on the data in the file based on the specified test and equation types,
+    returning the fitting parameters and results.
 
     Parameters
     ----------
-    file :
-
-    test :
-
-    equation :
-
-    lable :
+    file : str
+        The `file` parameter is a string that represents the file name or path of the data file to be read.
+    This file should be in pickle format.
+    test : str
+        The `test` parameter is a string that specifies the type of test being performed. It can have one
+    of three values: "Conc", "Screen", or "Ratio".
+    equation : str
+        The `equation` parameter is a string that specifies the type of equation to use for fitting. It can
+    take two possible values: "one_phase" or "sec_kinetic".
+    labels : list[str]
+        The `labels` parameter is a list of strings that represents the labels for the parameters in the
+    fitting equation. These labels are used to create a dictionary that maps each label to its
+    corresponding parameter value in the fitting result.
 
     Returns
     -------
-    params_list :
-
-    full_result_dict :
+        The function `overall_fit` returns two values: `params_list` and `full_result_dict`.
 
     """
     df: pd.DataFrame = pd.read_pickle(file)
     plate_num = file.split("_")[3]
     mean_df = df.filter(regex="mean")
-
-    if test not in ("Ratio", "Screen", "Conc"):
-        raise ValueError("Only valid test methods are 'Conc', 'Screen', and 'Ratio'")
 
     if test == "Screen":
         conditions = [i.split("_")[0] for i in mean_df.columns]
@@ -244,6 +354,8 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
             conditions[0] = "T1"
     elif test == "Ratio":
         conditions = ["_".join(i.split("_")[0:-1]) for i in mean_df.columns]
+    else:
+        raise ValueError("Only valid test methods are 'Conc', 'Screen', and 'Ratio'")
 
     params_list: list[dict[str, str]] = []
     full_result_dict = {}
@@ -252,7 +364,7 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
         if equation == "one_phase":
             result, params_group_list = _one_phase_fitting(df, condition, labels)
         elif equation == "sec_kinetic":
-            result, params_group_list = _kinetic_fitting(df, condition, labels)
+            result, params_group_list = _kinetic_fitting(df, condition, test)
         else:
             raise ValueError()
 
@@ -265,7 +377,7 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
         param_group_dict = dict(zip(labels, params_group_list))
         params_list.append(param_group_dict)
 
-        if not bool(full_result_dict):
+        if not full_result_dict:
             full_result_dict = result_dict
         else:
             full_result_dict.update(result_dict)
@@ -273,21 +385,25 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
     return params_list, full_result_dict
 
 
+# TODO: Fix the dictonary override issue
+# * Change the dictonary into a list of dict of dicts with the outer key as the condition and
+# * inner key as the trial number
 def parameter_determination(
     test: str, individual: bool = False
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
-    """
-    xxx
+    """_summary_
 
     Parameters
     ----------
     test : str
-
-    individual : bool
+        _description_
+    individual : bool, optional
+        _description_, by default False
 
     Returns
     -------
-
+    tuple[pd.DataFrame, pd.DataFrame, dict, dict]
+        _description_
     """
 
     def column_name_generation(individual: bool) -> tuple[str, list[str], list[str]]:
@@ -330,7 +446,7 @@ def parameter_determination(
         result_dict: dict,
         param_df_lst: list[pd.DataFrame],
     ):
-        if not bool(result_dict):
+        if not result_dict:
             result_dict = result
         else:
             result_dict.update(result)
@@ -371,6 +487,7 @@ def parameter_determination(
 
     one_phase_params_df = pd.concat(one_phase_df_lst)
     sec_kinetic_params_df = pd.concat(sec_kinetic_df_lst)
+    print(sec_kinetic_result_dict)
 
     return (
         one_phase_params_df,
@@ -386,18 +503,24 @@ def storage(
     test_type: str,
     equation: str,
 ) -> None:
-    """
-    xxx
+    """The `storage` function saves a DataFrame and a dictionary to pickle files based on the provided
+    parameters.
 
     Parameters
     ----------
-    fit_results : tuple[pd.DataFrame, dict[str, ModelResult]]
-
+    fit_results : tuple[pd.DataFrame, dict]
+        The `fit_results` parameter is a tuple containing two elements:
     individual : bool
-
+        The `individual` parameter is a boolean flag that indicates whether the storage should be done for
+    individual results or not. If `individual` is `True`, the filenames for the stored data will include
+    the prefix "individual_", otherwise they will not.
     test_type : str
-
+        The `test_type` parameter is a string that represents the type of test being performed. It could be
+    something like "regression", "classification", or any other type of analysis.
     equation : str
+        The "equation" parameter in the "storage" function is a string that represents the equation used
+    for fitting the data. It is used to generate the file names for storing the parameter and result
+    data.
 
     """
     new_df, result_dict = fit_results
@@ -408,14 +531,12 @@ def storage(
         param_fname = f"{test_type}_{equation}_param.pkl"
         result_fname = f"{test_type}_{equation}_result.pkl"
 
-    if os.path.exists(param_fname):
-        current_df: pd.DataFrame = pd.read_pickle(param_fname)
-        if not current_df.equals(new_df):
-            new_df.to_pickle(param_fname)
-            with open(result_fname, "wb") as fp:
-                pickle.dump(result_dict, fp)
+    new_df.to_pickle(param_fname)
+    with open(result_fname, "wb") as fp:
+        pickle.dump(result_dict, fp)
 
 
+# TODO: redo the os path finding with os.path.join
 def main(individual: bool, test_type: str):
     """
     xxx
@@ -431,16 +552,13 @@ def main(individual: bool, test_type: str):
 
     """
     if individual:
-        os.chdir("./dna_sdr/IO/Output/Pickles/Individual/")
+        os.chdir("./dna_sdr/IO/Output/Individual/")
     else:
-        os.chdir("./dna_sdr/IO/Output/Pickles/")
+        os.chdir("./dna_sdr/IO/Output/Group/")
 
     output = parameter_determination(test_type, individual)
 
-    if individual:
-        os.chdir("../../../../..")
-    else:
-        os.chdir("../../../..")
+    os.chdir("../../../..")
 
     os.chdir("./dna_sdr/pickles/")
     one_phase_results = (output[0], output[2])
@@ -452,5 +570,79 @@ def main(individual: bool, test_type: str):
 
 if __name__ == "__main__":
     INDIVIDUAL = True
-    TEST_TYPE = "Screen"
-    main(INDIVIDUAL, TEST_TYPE)
+    TEST_TYPE = "Conc"
+    os.chdir("./dna_sdr/IO/Output/Individual/")
+    parameter_determination(TEST_TYPE, INDIVIDUAL)
+
+    # main(INDIVIDUAL, TEST_TYPE)
+
+    # df = pd.read_pickle("./dna_sdr/pickles/individual_Conc_second_kinetic_result.pkl")
+    # print(df)
+    # time = time_list_generation(60)
+
+    # read_lst = ["P1_A1", "P1_A7", "P1_A8", "P1_A9", "P1_A10"]
+    # for name in read_lst:
+    #     sample: pd.DataFrame = pd.read_pickle(
+    #         f"./dna_sdr/IO/Output/Individual/4WJ_HEX_Screen_{name}.pkl"
+    #     )
+    #     sample = sample * 500
+    #     MAX_VALUE = 0
+    #     for _, conc in sample.items():
+    #         if MAX_VALUE <= conc.max():
+    #             MAX_VALUE = conc.max()
+    #     y_axis_range = np.arange(0, MAX_VALUE + 50, 100)
+
+    #     fig, axes = plt.subplots(4, 3, figsize=(12, 8), layout="constrained")
+    #     ROW = 0
+    #     COLUMN = 0
+
+    #     for _, conc in sample.items():
+    #         result, _ = _kinetic_fitting(conc, name, individual_fit=True)
+    #         release_grid_plot(conc, result, MAX_VALUE, ax=axes[ROW, COLUMN])
+    #         if ROW % 3 == 0 and ROW != 0:
+    #             COLUMN += 1
+    #             ROW = 0
+    #         else:
+    #             ROW += 1
+
+    #     fig.supylabel("Release quantity (nM)", fontsize=20)
+    #     fig.supxlabel("Time (mins)", fontsize=20)
+    #     fig.suptitle(f"{name}", fontsize=24)
+    #     plt.show()
+
+    # TRIG = "T1"
+    # percentage_lst = ["25", "50", "75", "100"]
+    # percentage_lst = ["25", "50", "75"]
+    # parameters = pd.read_pickle(
+    #     "./dna_sdr/pickles/individual_Conc_second_kinetic_param.pkl"
+    # )
+
+    # for percentage in percentage_lst:
+    #     sample: pd.DataFrame = pd.read_pickle(
+    #         f"./dna_sdr/IO/Output/Individual/4WJ_HEX_Conc_{TRIG}_{percentage}.pkl"
+    #     )
+    #     sample = sample * 500
+
+    #     MAX_VALUE = 0
+    #     for _, conc in sample.items():
+    #         if MAX_VALUE <= conc.max():
+    #             MAX_VALUE = conc.max()
+    #     y_axis_range = np.arange(0, MAX_VALUE + 50, 100)
+
+    #     fig, axes = plt.subplots(4, 3, figsize=(12, 8), layout="constrained")
+    #     ROW = 0
+    #     COLUMN = 0
+
+    #     for _, conc in sample.items():
+    #         print()
+    #         release_grid_plot(conc, result, MAX_VALUE, ax=axes[ROW, COLUMN])
+    #         if ROW % 3 == 0 and ROW != 0:
+    #             COLUMN += 1
+    #             ROW = 0
+    #         else:
+    #             ROW += 1
+
+    #     fig.supylabel("Release quantity (nM)", fontsize=20)
+    #     fig.supxlabel("Time (mins)", fontsize=20)
+    #     fig.suptitle(f"{TRIG}_{percentage}", fontsize=24)
+    #     plt.show()
