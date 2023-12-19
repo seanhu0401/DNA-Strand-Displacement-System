@@ -10,6 +10,7 @@ from dna_sdr.sequence.dna_utilits import DNA, Trigger
 
 comp_dict = {"t": 1, "g": 2, "c": 3, "a": 4}
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
+# TODO: Update the mismatch conversion dict
 mismatch_type_dict = {
     "a-t": 1,
     "a-g": 2,
@@ -137,6 +138,7 @@ def trig_aligment(
 
     new_tb, new_ob = tb_ob_calculation(trig1, trig2, toehold_b, overhang_b)
 
+    # TODO: Update the mismatch type defination
     for base in trig2.reverse_seq():
         base_at_loc = trig1.reverse_seq()[counter]
         if base != base_at_loc and counter < (trig2.base_count - new_ob):

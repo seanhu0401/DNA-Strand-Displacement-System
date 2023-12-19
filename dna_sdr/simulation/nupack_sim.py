@@ -60,7 +60,7 @@ if __name__ == "__main__":
             trig_base_complex = f"({name_lst[index]}+base)"
             t1 = nupack.Tube(
                 strands={base: 5e-7, incumb: 5e-7, trig: 5e-7},
-                complexes=nupack.SetSpec(max_size=2),
+                complexes=nupack.SetSpec(max_size=3),
                 name="t1",
             )
             complex_result = nupack.complex_analysis(
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     conc_dict = dict(zip(complex_list, conc_list))
     conc_df = pd.DataFrame.from_dict(conc_dict, orient="index", columns=["Conc (nM)"])
-    # conc_df.to_pickle("./dna_sdr/pickles/concentration.pkl")
+    conc_df.to_pickle("./dna_sdr/pickles/concentration.pkl")
 
     complex_list.append("(incumb+base)")
     seq_list.append(("CA CAATC CA TCT CA CCACC CA".replace(" ", "")))
@@ -91,4 +91,4 @@ if __name__ == "__main__":
         free_energy_dict, orient="index", columns=["dG (kcal/mol)"]
     )
     free_energy_df["Seqences (5' to 3')"] = seq_list
-    # free_energy_df.to_pickle("./dna_sdr/pickles/free_energy.pkl")
+    free_energy_df.to_pickle("./dna_sdr/pickles/free_energy.pkl")

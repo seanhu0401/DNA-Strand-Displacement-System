@@ -12,6 +12,7 @@ pickles
 *.csv
 image
 *.ipynb
+result
 
 # Nupack + Nupack test files
 nupack*
