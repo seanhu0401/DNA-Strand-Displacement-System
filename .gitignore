@@ -1,18 +1,19 @@
+.DS_Store
+.venv
+.vscode
+.idea
+.pytest_cache
 IO
 Ignore
 __pycache__
-.venv
-.vscode
-.pytest_cache
-.DS_Store
 pickles
-*.xlsx
+image
+result
 *.egg-info
+*.ipynb
+*.xlsx
 *.pkl
 *.csv
-image
-*.ipynb
-result
 
 # Nupack + Nupack test files
 nupack*
