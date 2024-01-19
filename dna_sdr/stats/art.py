@@ -1,9 +1,10 @@
 """
 The data input should have the response column to be the last column.
 """
-import os
 import itertools as it
+import os
 from functools import reduce
+
 import pandas as pd
 
 os.chdir("./")

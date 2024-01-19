@@ -1,5 +1,4 @@
 import pytest
-from dna_sdr.sequence.dna_utilits import DNA
 
 
 @pytest.fixture
@@ -15,6 +14,7 @@ def Incumb_Seq():
 @pytest.fixture
 def Base_Seq():
     return "TG GGTGG TG AGA TG GATTG TG AGA TG TG AGA CAT ACA GCG CCG ACC GTA"
+
 
 @pytest.fixture
 def Comp_Trigger():

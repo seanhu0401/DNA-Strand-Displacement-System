@@ -7,14 +7,15 @@ It combines, normalizes, averages, summerizes the data collected.
 
 """
 
-import os
 import glob
-import regex as re
+import os
+
 import pandas as pd
+import regex as re
 
 
 def _control_tube_location(
-    file: str, groups: int
+        file: str, groups: int
 ) -> tuple[tuple[int, int], list[str], bool]:
     if file.split(".")[0].split("_")[-1] == "RC":
         pos_con_tube_number = (groups * 4) + 1
@@ -65,7 +66,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
         elif test_type == "Ratio":
             plate_number_2 = split_name[5]
             trig_type = (
-                plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
+                    plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
             )
 
         if trig_type and trig_type not in trig_list:
@@ -75,7 +76,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
 
 
 def file_path_generation(
-    test_type: str, trig_type: str
+        test_type: str, trig_type: str
 ) -> tuple[str, str, str, str, str]:
     """
     Generate the file paths that are used to save the various dataframe into pickle files.
@@ -176,7 +177,7 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
         The name of the test file.
 
     option: str or None
-        An optional augment used for ratio study to determine the if the group is
+        An optional augment used for ratio study to determine if the group is
         over or under 100%. The default value it 'None'. The valid option input
         strings are 'over' or 'under'.
 
@@ -267,8 +268,8 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
 
 
 def group_generation(
-    df: pd.DataFrame, con_tube_number: int
-) -> tuple[list[list[str]], list[list]]:
+        df: pd.DataFrame, con_tube_number: int
+) -> tuple[list[list[str]], list[list[str]]]:
     """
     Use to generate the groups based on the location of the control tube. Generate
     both general groups and presented groups. General groups are the groups that should be
@@ -326,10 +327,10 @@ def group_generation(
 
 
 def data_combination(
-    fn: str,
-    ext: str,
-    groups: int,
-    cdata_path: str,
+        fn: str,
+        ext: str,
+        groups: int,
+        cdata_path: str,
 ) -> pd.DataFrame:
     """
     Combine the data across differnt trials with same experiemtnal
@@ -369,8 +370,8 @@ def data_combination(
         df.insert(1, "time (min)", time_lst_min, True)
         df.set_index("Cycle", inplace=True)
         avg_neg_control = df.iloc[
-            :, list(range(control_tube[0], control_tube[0] + 4))
-        ].mean(axis=1)
+                          :, list(range(control_tube[0], control_tube[0] + 4))
+                          ].mean(axis=1)
         pos_control = df.iloc[:, list(range(control_tube[1], control_tube[1] + 4))]
         pos_control_minus_baseline = pos_control.subtract(avg_neg_control, axis=0)
         avg_pos_control_minus_baseline = pos_control_minus_baseline.mean(axis=1)
@@ -386,7 +387,7 @@ def data_combination(
 
     # TODO: Read over the condition
     def starter(
-        dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
+            dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
     ) -> pd.DataFrame:
         """
         Drop the samples that did not started by cycle 3 and change in values between
@@ -403,9 +404,9 @@ def data_combination(
             loc_4 = ind_norm_data.iloc[4, col]
 
             if (
-                isinstance(loc_0, float)
-                and isinstance(loc_3, float)
-                and isinstance(loc_4, float)
+                    isinstance(loc_0, float)
+                    and isinstance(loc_3, float)
+                    and isinstance(loc_4, float)
             ):
                 if loc_4 - loc_0 < 0.05 and loc_3 < 0:
                     drop_columns.append(str(col + 1))
@@ -448,7 +449,7 @@ def data_combination(
 
 
 def data_normalization(
-    df: pd.DataFrame, groups: list[list], ndata_path: str
+        df: pd.DataFrame, groups: list[list], ndata_path: str
 ) -> pd.DataFrame:
     """
     Normalized data for each test file.
@@ -484,34 +485,35 @@ def data_normalization(
 
 
 def data_average(
-    df: pd.DataFrame,
-    time_list: list[float],
-    group_dict: dict,
-    presented_groups: list,
-    sdata_path: str,
+        df: pd.DataFrame,
+        time_list: list[float],
+        group_dict: dict,
+        presented_groups: list,
+        sdata_path: str,
 ) -> None:
-    """
-    Calculate basic stats for the normalized data and combined them into one dataframe
+    """The function `data_average` calculates the mean and standard deviation of data in a DataFrame for
+    different groups, combines the results into a new DataFrame, and exports it as a pickle file.
 
     Parameters
     ----------
     df : pd.DataFrame
-        The normalized dataframe
-
+        The `df` parameter is a pandas DataFrame that contains the data you want to average. It is assumed
+    that the data is organized in columns, where each column represents a different group.
     time_list : list[float]
-        The list of time points correspondes to the individual measurment in minutes
-
+        The `time_list` parameter is a list of float values representing the time values for each data
+    point in the DataFrame `df`.
     group_dict : dict
-        The
-
+        The `group_dict` parameter is a dictionary that maps the group number to its corresponding name. It
+    is used to create column names for the mean and standard deviation columns in the output dataframe.
     presented_groups : list
-        The list of groups that are presented in the trials
-
+        The `presented_groups` parameter is a list of group names that are to be included in the
+    calculation of the average and standard deviation. These group names should correspond to the column
+    names in the `df` DataFrame.
     sdata_path : str
-        The path for saving the combined and normalized dataframe in pickle format
+        The `sdata_path` parameter is a string that represents the file path where the combined data will
+    be stored as a pickle file.
 
     """
-
     norm_combined_data_df = pd.DataFrame()
     counter = 1
 
@@ -540,19 +542,20 @@ def data_average(
 
 
 def data_summerization(path: str, test_type: str) -> None:
-    """
-    Combine the same test condition from screening study into one file.
+    """The function `data_summerization` takes a path and test type as input, searches for specific files
+    in the given path, groups and filters the data, and saves the filtered data into pickle files.
 
     Parameters
     ----------
     path : str
-        The location where the normalized pickle files are stored
-
+        The `path` parameter is a string that represents the directory path where the files are located.
     test_type : str
-        The test type condition - currently has concentration (Conc),
-        screening (Screen), and ratio (Ratio).
+        The `test_type` parameter is a string that specifies the type of test being performed. It is used
+    to construct the search string for finding the relevant files in the given path. The function then
+    performs different operations based on the value of `test_type` to from list of condition presented.
 
     """
+
     t1_lst = []
     search_str = f"*_{test_type}_*_normalized.pkl"
     for location in glob.glob(os.path.join(path, search_str)):
@@ -577,13 +580,18 @@ def data_summerization(path: str, test_type: str) -> None:
 
         for k, v in presented_dict.items():
             filtered_df = df.loc[:, v]
-            filtered_df.to_pickle(
-                os.path.join(
-                    os.getcwd(),
-                    f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_{k}.pkl",
-                )
+            file_path = os.path.join(
+                os.getcwd(),
+                f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_{k}.pkl",
             )
-        t1_lst.append(df.loc[:, ["1", "2", "3", "4"]])
+            # TODO: Make sure it won't duplicate
+            # Check if the new df is a subset of the old df
+            if os.path.exists(file_path) and test_type == "Conc":
+                exist_df = pd.read_pickle(file_path)
+                if not filtered_df.equals(exist_df):
+                    filtered_df = pd.concat([exist_df, filtered_df], axis=1)
+            filtered_df.to_pickle(file_path)
+        t1_lst.append(df.loc[:, presented[0]])
 
     t1_df = pd.concat(t1_lst, axis=1, ignore_index=False)
     if test_type == "Conc":
@@ -602,15 +610,17 @@ def data_summerization(path: str, test_type: str) -> None:
 
 
 def parameter(path: str) -> None:
-    """
-    Combine the fitted results into one DataFrame.
+    """The function takes a path as input, reads two pickle files, filters the data based on trigger type,
+    merges the filtered data, and saves the merged data as a new pickle file.
 
     Parameters
     ----------
     path : str
-        The location where the fitted results are stored.
+        The `path` parameter is a string that represents the directory path where the pickle files are
+    located.
 
     """
+
     os.chdir(path)
     curve_param_df = pd.read_pickle("screen_one_phase_param.pkl")
     kinetic_param_df = pd.read_pickle("screen_kinetic_param.pkl")
@@ -622,17 +632,18 @@ def parameter(path: str) -> None:
     trig_kin_param_df.to_pickle("trig_kin_param.pkl")
 
     trig_curve_param_df["plate_loc"] = (
-        trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
+            trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
     )
     trig_curve_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
     trig_kin_param_df["plate_loc"] = (
-        trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
+            trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
     )
     trig_kin_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
     param_df = pd.merge(trig_curve_param_df, trig_kin_param_df, on="plate_loc")
-    param_df.to_pickle("trig_param.pkl")
+    print(param_df)
+    # param_df.to_pickle("trig_param.pkl")
 
 
 if __name__ == "__main__":

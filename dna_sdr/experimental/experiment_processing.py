@@ -1,5 +1,5 @@
 """
-This module is used to process the data from differnet test type
+This module is used to process the data from different test type
 
 This module utilized the data_processing module to process the data collected for the different  
 test type.
@@ -8,6 +8,7 @@ test type.
 import glob
 import os
 import shutil
+
 import dna_sdr.experimental.data_processing as dp
 
 
@@ -111,13 +112,11 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
 
     # Generate the groups presented in the combined data dataframe
     group_dict = dict(zip(list(range(1, len(group_list) + 1)), group_list))
-    group_of_samples, presented_groups = dp.group_generation(
-        combined_data_df, (groups * 4 + 1)
-    )
+    _, presented_groups = dp.group_generation(combined_data_df, (groups * 4 + 1))
 
     # Normalized the dataframe fo combined data with standard release value (T1) and export
     # into a pickle file for storage.
-    norm_data_df = dp.data_normalization(combined_data_df, group_of_samples, paths[2])
+    norm_data_df = dp.data_normalization(combined_data_df, presented_groups, paths[2])
 
     # Combine the values from norm_data_df to calculate average and standard devaition of
     # each condition and combined it all into one dataframe.

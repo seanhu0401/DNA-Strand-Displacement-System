@@ -3,9 +3,11 @@ Module docstring
 """
 
 import os
+
 import pandas as pd
 import regex as re
 from more_itertools import consecutive_groups
+
 from dna_sdr.sequence.dna_utilits import DNA, Trigger
 
 comp_dict = {"t": 1, "g": 2, "c": 3, "a": 4}
@@ -88,7 +90,7 @@ def sequence_comparison(seq_1: str, seq_2: str) -> dict[int, int]:
 
 
 def trig_aligment(
-    trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
+        trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
 ) -> tuple[int, int, int, list[int], list[int]]:
     """
     xxx
@@ -109,7 +111,7 @@ def trig_aligment(
     """
 
     def tb_ob_calculation(
-        t1: DNA, t2: DNA, toehold_b: int, overhang_b: int
+            t1: DNA, t2: DNA, toehold_b: int, overhang_b: int
     ) -> tuple[int, int]:
         base_difference = abs(t1.base_count - t2.base_count)
         new_tb = toehold_b
@@ -144,6 +146,7 @@ def trig_aligment(
         if base != base_at_loc and counter < (trig2.base_count - new_ob):
             location = trig1.base_count - counter
             mismatch_loc.append(location)
+            # TODO: Change the mismatch_str format
             mismatch_str = f"{base_at_loc}-{base}"
             mismatch_type.append(mismatch_type_dict[mismatch_str])
             mismatch += 1
@@ -163,7 +166,7 @@ def trig_aligment(
 
 
 def name_generation(
-    toehold_b: int, overhang_b: int, mismatch: list[int], type_mismatch: list[int]
+        toehold_b: int, overhang_b: int, mismatch: list[int], type_mismatch: list[int]
 ) -> str:
     """
     xxx
@@ -197,7 +200,7 @@ def name_generation(
 
 
 def seq_info(
-    fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+        fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
 ) -> pd.DataFrame:
     """
     xxx

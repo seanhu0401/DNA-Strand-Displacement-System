@@ -3,8 +3,8 @@ Module docstring
 """
 
 from dataclasses import dataclass, field
-import regex as re
 
+import regex as re
 
 base_pairing = {"a": "t", "t": "a", "g": "c", "c": "g"}
 
