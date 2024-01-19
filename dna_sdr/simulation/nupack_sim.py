@@ -13,9 +13,8 @@ DNA analysis using NUPACK
     - MgCl2: 12 mM
 """
 
-import pandas as pd
 import nupack
-
+import pandas as pd
 
 if __name__ == "__main__":
     # The sum of the concentrations of (monovalent) sodium, potassium, and ammonium ions,
@@ -74,7 +73,7 @@ if __name__ == "__main__":
                 "t1"
             ].complex_concentrations.items():
                 if complex_sturc.name == trig_base_complex:
-                    conc_list.append(conc * 10**9)
+                    conc_list.append(conc * 10 ** 9)
     else:
         raise ValueError()
 

@@ -16,6 +16,6 @@ result
 *.csv
 
 # Nupack + Nupack test files
-nupack*
+nupack-4.*
 blah
 design-checkpoint

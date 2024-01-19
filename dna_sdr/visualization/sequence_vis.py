@@ -2,6 +2,7 @@
 Module docstring
 """
 import matplotlib.pyplot as plt
+
 from dna_sdr.sequence import seq_utilits
 from dna_sdr.sequence.dna_utilits import DNA
 

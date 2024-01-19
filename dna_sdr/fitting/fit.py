@@ -1,17 +1,17 @@
 """
 xxx
 """
-import os
 import glob
+import os
 import pickle
-import pandas as pd
+
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import pylab
+import pandas as pd
 from lmfit import Model
+from matplotlib import pylab
 from scipy.integrate import solve_ivp
+
 from dna_sdr.experimental.data_processing import time_list_generation
-from dna_sdr.visualization.vis import release_grid_plot
 
 plt_params = {
     # "figure.figsize": [6.4, 4.8],
@@ -127,10 +127,10 @@ def sec_kin_fit(t: list[float], y0: list[float], k1: float) -> np.ndarray:
 
 
 def _one_phase_fitting(
-    df: pd.DataFrame | pd.Series,
-    condition: str,
-    labels: list[str],
-    individual_fit: bool = False,
+        df: pd.DataFrame | pd.Series,
+        condition: str,
+        labels: list[str],
+        individual_fit: bool = False,
 ):
     """The `_one_phase_fitting` function fits a one-phase association model to data and returns the fitting
     result and a list of parameters.
@@ -166,7 +166,7 @@ def _one_phase_fitting(
     if not individual_fit:
         mean = (df.filter(regex="mean").filter(regex=condition) * 500).squeeze()
         std = (df.filter(regex="std").filter(regex=condition) * 500).squeeze()
-        result = model.fit(mean, params, t=time_lst, weight=1 / std)  # type: ignore
+        result = model.fit(mean, params, t=time_lst, weight=1 / std**2)  # type: ignore
 
     else:
         result = model.fit(trial, params, time=time_lst)
@@ -188,11 +188,11 @@ def _one_phase_fitting(
 
 
 def _kinetic_fitting(
-    df: pd.DataFrame | pd.Series,
-    condition: str,
-    test_type: str = "Screen",
-    individual_fit: bool = False,
-    labels: list[str] | None = None,
+        df: pd.DataFrame | pd.Series,
+        condition: str,
+        test_type: str = "Screen",
+        individual_fit: bool = False,
+        labels: list[str] | None = None,
 ):
     """The `_kinetic_fitting` function performs kinetic fitting on a given dataset based on the specified
     condition and test type, returning the fitting result and a list of fitting parameters.
@@ -385,25 +385,28 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
     return params_list, full_result_dict
 
 
-# TODO: Fix the dictonary override issue
-# * Change the dictonary into a list of dict of dicts with the outer key as the condition and
-# * inner key as the trial number
 def parameter_determination(
-    test: str, individual: bool = False
-) -> tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
-    """_summary_
+        test: str, individual: bool = False
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict[str, dict]], list[dict[str, dict]]]:
+    """The `parameter_determination` function takes in a test name and an optional parameter indicating
+    whether to process individual files, and returns dataframes and lists containing parameter
+    information and results for one-phase and second kinetic fits.
 
     Parameters
     ----------
     test : str
-        _description_
+        The `test` parameter is a string that represents the type of test being performed. It is used to
+    generate the appropriate column names for the dataframes and to determine the file query string.
     individual : bool, optional
-        _description_, by default False
+        The `individual` parameter is a boolean flag that determines whether the function should perform
+    individual fitting or overall fitting. If `individual` is set to `True`, the function will perform
+    individual fitting. If `individual` is set to `False`, the function will perform overall fitting.
+    The default value for
 
     Returns
     -------
-    tuple[pd.DataFrame, pd.DataFrame, dict, dict]
-        _description_
+        The function `parameter_determination` returns a tuple containing four elements:
+
     """
 
     def column_name_generation(individual: bool) -> tuple[str, list[str], list[str]]:
@@ -428,6 +431,8 @@ def parameter_determination(
             if test in ("Conc", "Screen"):
                 one_phase_list.insert(0, "Plate Number")
                 kinetic_list.insert(0, "Plate Number")
+            elif test in ("Ratio"):
+                pass
             else:
                 raise ValueError()
 
@@ -441,25 +446,24 @@ def parameter_determination(
         return param_lst, result
 
     def result_combination(
-        param_lst: list[dict[str, str]],
-        result: dict,
-        result_dict: dict,
-        param_df_lst: list[pd.DataFrame],
+            file: str,
+            param_lst: list[dict[str, str]],
+            result: dict,
+            result_lst: list[dict],
+            param_df_lst: list[pd.DataFrame],
     ):
-        if not result_dict:
-            result_dict = result
-        else:
-            result_dict.update(result)
+        test = file.split(".")[0].split("Conc_")[-1]
+        result_lst.append({f"{test}": result})
         param_df = pd.DataFrame(param_lst)
         param_df_lst.append(param_df)
 
-        return result_dict, param_df_lst
+        return result_lst, param_df_lst
 
     one_phase_df_lst = []
-    one_phase_result_dict = {}
+    one_phase_result_lst = []
 
     sec_kinetic_df_lst = []
-    sec_kinetic_result_dict = {}
+    sec_kinetic_result_lst = []
     str_query, one_phase_list, kinetic_list = column_name_generation(individual)
 
     for f in glob.glob(str_query):
@@ -471,44 +475,45 @@ def parameter_determination(
             f, "sec_kinetic", kinetic_list, individual
         )
 
-        one_phase_result_dict, one_phase_df_lst = result_combination(
+        one_phase_result_lst, one_phase_df_lst = result_combination(
+            f,
             one_phase_params_list,
             one_phase_results,
-            one_phase_result_dict,
+            one_phase_result_lst,
             one_phase_df_lst,
         )
 
-        sec_kinetic_result_dict, sec_kinetic_df_lst = result_combination(
+        sec_kinetic_result_lst, sec_kinetic_df_lst = result_combination(
+            f,
             sec_kinetic_params_list,
             sec_kinetic_results,
-            sec_kinetic_result_dict,
+            sec_kinetic_result_lst,
             sec_kinetic_df_lst,
         )
 
     one_phase_params_df = pd.concat(one_phase_df_lst)
     sec_kinetic_params_df = pd.concat(sec_kinetic_df_lst)
-    print(sec_kinetic_result_dict)
 
     return (
         one_phase_params_df,
         sec_kinetic_params_df,
-        one_phase_result_dict,
-        sec_kinetic_result_dict,
+        one_phase_result_lst,
+        sec_kinetic_result_lst,
     )
 
 
 def storage(
-    fit_results: tuple[pd.DataFrame, dict],
-    individual: bool,
-    test_type: str,
-    equation: str,
+        fit_results: tuple[pd.DataFrame, list[dict[str, dict]]],
+        individual: bool,
+        test_type: str,
+        equation: str,
 ) -> None:
     """The `storage` function saves a DataFrame and a dictionary to pickle files based on the provided
     parameters.
 
     Parameters
     ----------
-    fit_results : tuple[pd.DataFrame, dict]
+    fit_results : tuple[pd.DataFrame, list[dict]]
         The `fit_results` parameter is a tuple containing two elements:
     individual : bool
         The `individual` parameter is a boolean flag that indicates whether the storage should be done for
@@ -538,17 +543,19 @@ def storage(
 
 # TODO: redo the os path finding with os.path.join
 def main(individual: bool, test_type: str):
-    """
-    xxx
+    """The main function changes the current directory based on the individual parameter, calls the
+    parameter_determination function with the test_type and individual parameters, changes the directory
+    again, and then calls the storage function with the output and other parameters.
 
     Parameters
     ----------
-    test : str
-
     individual : bool
-
-    Returns
-    -------
+        The `individual` parameter is a boolean value that determines whether the code should operate on
+    individual data or group data. If `individual` is `True`, the code will change the current
+    working directory to `./dna_sdr/IO/Output/Individual/`, otherwise it will change it to `./dna_sdr/IO/Output/Group/`
+    test_type : str
+        The `test_type` parameter is a string that specifies the type of test being performed. It is used as an input
+    to the `parameter_determination` function.
 
     """
     if individual:
@@ -571,14 +578,20 @@ def main(individual: bool, test_type: str):
 if __name__ == "__main__":
     INDIVIDUAL = True
     TEST_TYPE = "Conc"
-    os.chdir("./dna_sdr/IO/Output/Individual/")
-    parameter_determination(TEST_TYPE, INDIVIDUAL)
+    main(INDIVIDUAL, TEST_TYPE)
 
-    # main(INDIVIDUAL, TEST_TYPE)
-
-    # df = pd.read_pickle("./dna_sdr/pickles/individual_Conc_second_kinetic_result.pkl")
-    # print(df)
+    # result_list: list[dict[str, dict[str, ModelResult]]] = pd.read_pickle(
+    #     "./dna_sdr/pickles/individual_Conc_second_kinetic_result.pkl"
+    # )
     # time = time_list_generation(60)
+    # percentage_lst = ["25", "50", "75"]
+    # t1_lst = [f"T1_{conc}" for conc in percentage_lst]
+
+    # for study in result_list:
+    #     for condition, results in study.items():
+    #         if condition in t1_lst:
+    #             for trial in results.values():
+    #                 print(trial)
 
     # read_lst = ["P1_A1", "P1_A7", "P1_A8", "P1_A9", "P1_A10"]
     # for name in read_lst:

@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def fit_result_combine(
-    dataframe_1: pd.DataFrame, dataframe_2: pd.DataFrame
+        dataframe_1: pd.DataFrame, dataframe_2: pd.DataFrame
 ) -> pd.DataFrame:
     """
     xxx
@@ -20,7 +20,7 @@ def fit_result_combine(
     """
 
     def dataframe_processing(
-        dataframe: pd.DataFrame, cond_drop: bool = False
+            dataframe: pd.DataFrame, cond_drop: bool = False
     ) -> pd.DataFrame:
         dataframe.reset_index(inplace=True)
         if cond_drop:
@@ -37,7 +37,7 @@ def fit_result_combine(
 
 
 if __name__ == "__main__":
-    TEST = "Screen"
+    TEST = "Conc"
     FIT1 = "one_phase"
     FIT2 = "second_kinetic"
     PARAMS1 = f"./dna_sdr/pickles/individual_{TEST}_{FIT1}_param.pkl"
@@ -45,7 +45,8 @@ if __name__ == "__main__":
     params_df_1: pd.DataFrame = pd.read_pickle(PARAMS1)
     params_df_2: pd.DataFrame = pd.read_pickle(PARAMS2)
     params_df = fit_result_combine(params_df_1, params_df_2)
-    params_df.to_pickle(f"./dna_sdr/pickles/individual_{TEST}_param.pkl")
+    # params_df.to_pickle(f"./dna_sdr/pickles/individual_{TEST}_param.pkl")
+    # params_df.to_csv(f"./dna_sdr/pickles/individual_{TEST}_param.csv")
 
     # trig_pickle = "./dna_sdr/pickles/trig_param.pkl"  # Fitting result
     # conc_pickle = "./dna_sdr/pickles/concentration.pkl"  # Nupack analysis

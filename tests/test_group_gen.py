@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from dna_sdr.data_process.group import group_generation
+from dna_sdr.experimental.data_processing import group_generation
 
 
 def conversion(number_list):

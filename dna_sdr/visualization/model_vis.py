@@ -3,7 +3,9 @@ Module Docstrging
 """
 import os
 import pickle
+
 import matplotlib.pyplot as plt
+
 from dna_sdr.experimental.data_processing import time_list_generation
 
 plt.rc("xtick", labelsize=12)
@@ -26,13 +28,13 @@ CB_color_cycle = [
 
 
 def fit_plot(
-    test: str,
-    fit_cond: str,
-    x_axis: list[float],
-    result,
-    condition: str | None = None,
-    color="#377eb8",
-    ax=None,
+        test: str,
+        fit_cond: str,
+        x_axis: list[float],
+        result,
+        condition: str | None = None,
+        color="#377eb8",
+        ax=None,
 ):
     """
     xxx
