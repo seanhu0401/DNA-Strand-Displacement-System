@@ -153,5 +153,5 @@ def main(test: str):
 
 
 if __name__ == "__main__":
-    TEST = "Conc"
+    TEST = "Ratio"
     main(TEST)

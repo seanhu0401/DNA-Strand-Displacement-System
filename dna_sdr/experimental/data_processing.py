@@ -3,7 +3,7 @@ This module is used to generate the various DataFrame for data analysis
 
 The main purpose of this module is to define the functions that is used to 
 process the data obtained from the 'Q' qPCR machine and generate various DataFrame from it.
-It combines, normalizes, averages, summerizes the data collected. 
+It combines, normalizes, averages, summarizes the data collected.
 
 """
 
@@ -15,7 +15,7 @@ import regex as re
 
 
 def _control_tube_location(
-        file: str, groups: int
+    file: str, groups: int
 ) -> tuple[tuple[int, int], list[str], bool]:
     if file.split(".")[0].split("_")[-1] == "RC":
         pos_con_tube_number = (groups * 4) + 1
@@ -39,7 +39,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
     Parameters
     ----------
     fname_list : list[str]
-        A list that contained all the file name for a specific conditon
+        A list that contained all the file name for a specific condition
 
     Returns
     -------
@@ -66,7 +66,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
         elif test_type == "Ratio":
             plate_number_2 = split_name[5]
             trig_type = (
-                    plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
+                plate_number_1 + "_" + match[0] + "_" + plate_number_2 + "_" + match[1]
             )
 
         if trig_type and trig_type not in trig_list:
@@ -76,7 +76,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
 
 
 def file_path_generation(
-        test_type: str, trig_type: str
+    test_type: str, trig_type: str
 ) -> tuple[str, str, str, str, str]:
     """
     Generate the file paths that are used to save the various dataframe into pickle files.
@@ -84,7 +84,7 @@ def file_path_generation(
     Parameters
     ----------
     test_type : str
-        The type of test that is being analyized
+        The type of test that is being analyzed
 
     trig_type : str
         The triggers that are selected in the file
@@ -100,8 +100,8 @@ def file_path_generation(
     normalized_cdata_path : str
         The save path for the normalized combined data
 
-    summerized_data_path : str
-        The save path for the summerized data
+    summarized_data_path : str
+        The save path for the summarized data
 
     dir_path : str
         The save path for the raw data after processing.
@@ -118,12 +118,12 @@ def file_path_generation(
 
     combined_data_after_baseline_subtraction_pickle = f"{dir_name}.{pickle_extension}"
     norm_combined_data_pickle = f"{dir_name}_normalized.{pickle_extension}"
-    summerized_data_pickle = f"{dir_name}_summerized.{pickle_extension}"
+    summarized_data_pickle = f"{dir_name}_summarized.{pickle_extension}"
     cdata_path = os.path.join(
         pickle_save_path, combined_data_after_baseline_subtraction_pickle
     )
     normalized_cdata_path = os.path.join(pickle_save_path, norm_combined_data_pickle)
-    summarized_data_path = os.path.join(pickle_save_path, summerized_data_pickle)
+    summarized_data_path = os.path.join(pickle_save_path, summarized_data_pickle)
     dir_path = os.path.join(parent_dir, dir_name)
 
     return (
@@ -151,7 +151,7 @@ def time_list_generation(num_cycle: int, init_time_sec: int = 231) -> list[float
     Returns
     -------
     t_list_mins : list[float]
-        The list of time points at each measurement time (end of each cycle) in mintues.
+        The list of time points at each measurement time (end of each cycle) in minutes.
 
     """
     cycle_list = list(range(1, num_cycle))
@@ -194,11 +194,8 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
     match = [re.sub("0+(?!$)", "", loc) for loc in match]
     group_lst = ["T1"]
     split_fname = fname.split("_")
-    group_quant = 0
 
     def screen_cond() -> tuple[list[str], int]:
-        group_quant = 0
-
         if len(match) == 2:
             row = (match[0][0], match[1][0])
             col = (int(match[0][1:]), int(match[1][1:]))
@@ -227,7 +224,7 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
             group_quant = len(match) + 1
             group_lst.extend(match)
 
-        elif len(match) < 2:
+        else:
             raise ValueError(f"Check test and file name - {fname}")
 
         return group_lst, group_quant
@@ -254,7 +251,9 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
         group_quant = len(group_lst)
 
     elif split_fname[2] == "Ratio":
-        trig = f"{split_fname[3]}_{match[0]}_{split_fname[5]}_{match[1]}"
+        trig_1 = f"{split_fname[3]}_{match[0]}"
+        trig_2 = f"{split_fname[5]}_{match[1]}"
+        trig = f"{trig_1}_{trig_2}"
         single_conc_lst = [100, 75, 50, 25, 0]
         ratio_tuple_lst = list(zip(single_conc_lst, single_conc_lst[::-1]))
 
@@ -262,19 +261,24 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
             return trig + "_" + str(tuple_pair[0]) + "_" + str(tuple_pair[-1])
 
         group_lst = list(map(combine, ratio_tuple_lst))
+        if trig_1 != "P0_A0":
+            group_lst.insert(0, "T1")
         group_quant = len(group_lst)
+
+    else:
+        raise ValueError("Unknown Test Type")
 
     return group_quant, group_lst
 
 
 def group_generation(
-        df: pd.DataFrame, con_tube_number: int
+    df: pd.DataFrame, con_tube_number: int
 ) -> tuple[list[list[str]], list[list[str]]]:
     """
     Use to generate the groups based on the location of the control tube. Generate
     both general groups and presented groups. General groups are the groups that should be
     in the test file. The presented groups are the groups that are actually in the test
-    file. This occurs when the data processing procedure observes negative or stagnet
+    file. This occurs when the data processing procedure observes negative or stagnate
     data points.
 
     Parameters
@@ -327,13 +331,13 @@ def group_generation(
 
 
 def data_combination(
-        fn: str,
-        ext: str,
-        groups: int,
-        cdata_path: str,
+    fn: str,
+    ext: str,
+    groups: int,
+    cdata_path: str,
 ) -> pd.DataFrame:
     """
-    Combine the data across differnt trials with same experiemtnal
+    Combine the data across different trials with same experimental
     condition into one dataframe
 
     Parameters
@@ -349,10 +353,6 @@ def data_combination(
 
     cdata_path : str
         The save path for the combined dataframe in pickle format
-
-    opt : str | None
-        Optional augument with default None. Used in ratio study to indicate the
-        direction of the ratio.
 
     Returns
     -------
@@ -370,8 +370,8 @@ def data_combination(
         df.insert(1, "time (min)", time_lst_min, True)
         df.set_index("Cycle", inplace=True)
         avg_neg_control = df.iloc[
-                          :, list(range(control_tube[0], control_tube[0] + 4))
-                          ].mean(axis=1)
+            :, list(range(control_tube[0], control_tube[0] + 4))
+        ].mean(axis=1)
         pos_control = df.iloc[:, list(range(control_tube[1], control_tube[1] + 4))]
         pos_control_minus_baseline = pos_control.subtract(avg_neg_control, axis=0)
         avg_pos_control_minus_baseline = pos_control_minus_baseline.mean(axis=1)
@@ -387,10 +387,10 @@ def data_combination(
 
     # TODO: Read over the condition
     def starter(
-            dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
+        dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
     ) -> pd.DataFrame:
         """
-        Drop the samples that did not started by cycle 3 and change in values between
+        Drop the samples that did not start by cycle 3 and change in values between
         initial and cycle 4 is less than 0.05
         """
         norm_data = dataframe.div(avg_pos_control_minus_baseline, axis=0)
@@ -404,9 +404,9 @@ def data_combination(
             loc_4 = ind_norm_data.iloc[4, col]
 
             if (
-                    isinstance(loc_0, float)
-                    and isinstance(loc_3, float)
-                    and isinstance(loc_4, float)
+                isinstance(loc_0, float)
+                and isinstance(loc_3, float)
+                and isinstance(loc_4, float)
             ):
                 if loc_4 - loc_0 < 0.05 and loc_3 < 0:
                     drop_columns.append(str(col + 1))
@@ -449,7 +449,7 @@ def data_combination(
 
 
 def data_normalization(
-        df: pd.DataFrame, groups: list[list], ndata_path: str
+    df: pd.DataFrame, groups: list[list], ndata_path: str
 ) -> pd.DataFrame:
     """
     Normalized data for each test file.
@@ -485,11 +485,11 @@ def data_normalization(
 
 
 def data_average(
-        df: pd.DataFrame,
-        time_list: list[float],
-        group_dict: dict,
-        presented_groups: list,
-        sdata_path: str,
+    df: pd.DataFrame,
+    time_list: list[float],
+    group_dict: dict,
+    presented_groups: list,
+    sdata_path: str,
 ) -> None:
     """The function `data_average` calculates the mean and standard deviation of data in a DataFrame for
     different groups, combines the results into a new DataFrame, and exports it as a pickle file.
@@ -541,8 +541,8 @@ def data_average(
     norm_combined_data_df.to_pickle(sdata_path)
 
 
-def data_summerization(path: str, test_type: str) -> None:
-    """The function `data_summerization` takes a path and test type as input, searches for specific files
+def data_summarization(path: str, test_type: str) -> None:
+    """The function `data_summarization` takes a path and test type as input, searches for specific files
     in the given path, groups and filters the data, and saves the filtered data into pickle files.
 
     Parameters
@@ -564,6 +564,9 @@ def data_summerization(path: str, test_type: str) -> None:
         if test_type == "Conc":
             groups, group_lst = group_query(fname, fname.split("_")[5])
             non_t1_cond = [i for i in group_lst if "T1" not in i]
+        if test_type == "Ratio":
+            groups, group_lst = group_query(fname)
+            non_t1_cond = [i for i in group_lst if "T1" not in i]
         else:
             groups, group_lst = group_query(fname)
             non_t1_cond = [
@@ -575,8 +578,10 @@ def data_summerization(path: str, test_type: str) -> None:
         _, presented = group_generation(df, (groups * 4 + 1))
         if len(t1_cond) > 1:
             presented_dict = dict(zip(t1_cond[1:], presented[1:]))
-        else:
+        elif len(t1_cond) == 1:
             presented_dict = dict(zip(non_t1_cond, presented[1:]))
+        else:
+            presented_dict = dict(zip(non_t1_cond, presented))
 
         for k, v in presented_dict.items():
             filtered_df = df.loc[:, v]
@@ -591,22 +596,24 @@ def data_summerization(path: str, test_type: str) -> None:
                 if not filtered_df.equals(exist_df):
                     filtered_df = pd.concat([exist_df, filtered_df], axis=1)
             filtered_df.to_pickle(file_path)
-        t1_lst.append(df.loc[:, presented[0]])
+        if len(t1_cond) >= 1:
+            t1_lst.append(df.loc[:, presented[0]])
 
-    t1_df = pd.concat(t1_lst, axis=1, ignore_index=False)
-    if test_type == "Conc":
-        t1_df.to_pickle(
-            os.path.join(
-                os.getcwd(),
-                f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1_100.pkl",
+    if t1_lst:
+        t1_df = pd.concat(t1_lst, axis=1, ignore_index=False)
+        if test_type == "Conc":
+            t1_df.to_pickle(
+                os.path.join(
+                    os.getcwd(),
+                    f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1_100.pkl",
+                )
             )
-        )
-    else:
-        t1_df.to_pickle(
-            os.path.join(
-                os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+        else:
+            t1_df.to_pickle(
+                os.path.join(
+                    os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+                )
             )
-        )
 
 
 def parameter(path: str) -> None:
@@ -632,12 +639,12 @@ def parameter(path: str) -> None:
     trig_kin_param_df.to_pickle("trig_kin_param.pkl")
 
     trig_curve_param_df["plate_loc"] = (
-            trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
+        trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
     )
     trig_curve_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
     trig_kin_param_df["plate_loc"] = (
-            trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
+        trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
     )
     trig_kin_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
 
@@ -648,4 +655,4 @@ def parameter(path: str) -> None:
 
 if __name__ == "__main__":
     print()
-    # data_summerization("./dna_sdr/IO/Output/Group/", "Conc")
+    data_summarization("./dna_sdr/IO/Output/Group/", "Ratio")
