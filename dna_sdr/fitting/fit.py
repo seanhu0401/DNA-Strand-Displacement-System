@@ -129,8 +129,10 @@ def sec_kin_fit(t: list[float], y0: list[float], k1: float) -> np.ndarray:
 def _one_phase_fitting(
         df: pd.DataFrame | pd.Series,
         condition: str,
+        test_type: str,
         labels: list[str],
         individual_fit: bool = False,
+        trigs: list[str] | None = None,
 ):
     """The `_one_phase_fitting` function fits a one-phase association model to data and returns the fitting
     result and a list of parameters.
@@ -159,14 +161,17 @@ def _one_phase_fitting(
 
     time_lst = time_list_generation(60)
     trial = df
-    params_group_list = [condition]
+    if test_type == "Ratio":
+        params_group_list = [*trigs, condition]
+    else:
+        params_group_list = [condition]
     model = Model(one_phase_association)
     params = model.make_params(plateau=250, k=0.01)
 
     if not individual_fit:
         mean = (df.filter(regex="mean").filter(regex=condition) * 500).squeeze()
         std = (df.filter(regex="std").filter(regex=condition) * 500).squeeze()
-        result = model.fit(mean, params, t=time_lst, weight=1 / std**2)  # type: ignore
+        result = model.fit(mean, params, t=time_lst, weight=1 / std ** 2)  # type: ignore
 
     else:
         result = model.fit(trial, params, time=time_lst)
@@ -193,6 +198,7 @@ def _kinetic_fitting(
         test_type: str = "Screen",
         individual_fit: bool = False,
         labels: list[str] | None = None,
+        trigs: list[str] | None = None,
 ):
     """The `_kinetic_fitting` function performs kinetic fitting on a given dataset based on the specified
     condition and test type, returning the fitting result and a list of fitting parameters.
@@ -240,7 +246,10 @@ def _kinetic_fitting(
 
     time_lst = time_list_generation(60)
     trial = df
-    params_group_list = [condition]
+    if test_type == "Ratio":
+        params_group_list = [*trigs, condition]
+    else:
+        params_group_list = [condition]
     model = Model(sec_kin_fit, independent_vars=["t", "y0"])
     params = model.make_params(k1={"value": 1e-05, "min": 1e-08, "max": 100.0})
 
@@ -254,6 +263,7 @@ def _kinetic_fitting(
     params_group_list.extend(
         [result.params["k1"].value, result.rsquared, result.params["k1"].stderr]
     )
+
     if len(labels) != len(params_group_list):
         raise ValueError("the fit output and the equation does not match")
 
@@ -280,8 +290,6 @@ def ind_fit(file: str, equation: str, labels: list[str]):
 
     Returns
     -------
-    _type_
-        _description_
 
     """
 
@@ -289,16 +297,23 @@ def ind_fit(file: str, equation: str, labels: list[str]):
     name = file.split(".")[0]
     cond = "_".join(name.split("_")[-2:])
     test_type = name.split("_")[2]
-
+    if test_type == "Ratio":
+        trigs = ["_".join(name.split("_")[3:5]), "_".join(name.split("_")[5:7])]
     params_list: list[dict[str, str]] = []
     full_result_dict = {}
 
     for count in range(len(df.columns)):
         trial = df.iloc[:, count] * 500
         if equation == "one_phase":
-            result, params_group_list = _one_phase_fitting(trial, cond, labels, True)
+            if test_type == "Ratio":
+                result, params_group_list = _one_phase_fitting(trial, cond, test_type, labels, True, trigs)
+            else:
+                result, params_group_list = _one_phase_fitting(trial, cond, test_type, labels, True)
         elif equation == "sec_kinetic":
-            result, params_group_list = _kinetic_fitting(trial, cond, test_type, True)
+            if test_type == "Ratio":
+                result, params_group_list = _kinetic_fitting(trial, cond, test_type, True, labels, trigs)
+            else:
+                result, params_group_list = _kinetic_fitting(trial, cond, test_type, True)
         else:
             raise ValueError()
 
@@ -360,9 +375,9 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
     params_list: list[dict[str, str]] = []
     full_result_dict = {}
 
-    for condition in conditions:  # type: ignore - First if statement should ensure it's not unbound
+    for condition in conditions:  # type: ignore
         if equation == "one_phase":
-            result, params_group_list = _one_phase_fitting(df, condition, labels)
+            result, params_group_list = _one_phase_fitting(df, condition, test, labels)
         elif equation == "sec_kinetic":
             result, params_group_list = _kinetic_fitting(df, condition, test)
         else:
@@ -373,6 +388,8 @@ def overall_fit(file: str, test: str, equation: str, labels: list[str]):
             result_dict = dict({f"{plate_num}_{condition}": result})
         elif test == "Ratio":
             result_dict = dict({f"{condition}": result})
+        else:
+            raise ValueError()
 
         param_group_dict = dict(zip(labels, params_group_list))
         params_list.append(param_group_dict)
@@ -426,12 +443,15 @@ def parameter_determination(
         ]
         if individual:
             str_query = f"*_{test}_*.pkl"
+            if test == "Ratio":
+                one_phase_list = ["Trig1", "Trig2"] + one_phase_list
+                kinetic_list = ["Trig1", "Trig2"] + kinetic_list
         else:
             str_query = f"*_{test}_*_summerized.pkl"
             if test in ("Conc", "Screen"):
                 one_phase_list.insert(0, "Plate Number")
                 kinetic_list.insert(0, "Plate Number")
-            elif test in ("Ratio"):
+            elif test in "Ratio":
                 pass
             else:
                 raise ValueError()
@@ -577,7 +597,7 @@ def main(individual: bool, test_type: str):
 
 if __name__ == "__main__":
     INDIVIDUAL = True
-    TEST_TYPE = "Conc"
+    TEST_TYPE = "Ratio"
     main(INDIVIDUAL, TEST_TYPE)
 
     # result_list: list[dict[str, dict[str, ModelResult]]] = pd.read_pickle(

@@ -30,7 +30,7 @@ pylab.rcParams.update(params)
 if __name__ == "__main__":
     READ = "T1"
     params_df: pd.DataFrame = pd.read_pickle(
-        "./pickles/individual_Conc_param.pkl"
+        "./dna_sdr/pickles/individual_Conc_param.pkl"
     )
 
     read_df = params_df[params_df["plate_loc"].str.contains(READ)]
