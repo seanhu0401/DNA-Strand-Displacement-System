@@ -531,7 +531,7 @@ def data_summarization(path: str, test_type: str) -> None:
         if test_type == "Conc":
             groups, group_lst = group_query(fname, fname.split("_")[5])
             non_t1_cond = [i for i in group_lst if "T1" not in i]
-        if test_type == "Ratio":
+        elif test_type == "Ratio":
             groups, group_lst = group_query(fname)
             non_t1_cond = [i for i in group_lst if "T1" not in i]
         else:
