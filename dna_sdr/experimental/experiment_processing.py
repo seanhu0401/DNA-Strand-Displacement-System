@@ -88,15 +88,15 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
     """
 
     # Save file path generation
-    # path[0] = fname
-    # path[1] = combined_data_path
-    # path[2] = norm_cdata_path
-    # path[3] = sum_data_path
-    # path[4] = processed_path
+    # paths[0] = fname
+    # paths[1] = combined_data_path
+    # paths[2] = norm_cdata_path
+    # paths[3] = sum_data_path
+    # paths[4] = processed_path
     paths = dp.file_path_generation(test_type, trigger_selected)
     time_list_mins = dp.time_list_generation(60)
 
-    if not test_type in {"Conc", "Screen", "Ratio"}:
+    if test_type not in {"Conc", "Screen", "Ratio"}:
         raise ValueError()
 
     if test_type == "Conc":
@@ -118,7 +118,7 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
     # into a pickle file for storage.
     norm_data_df = dp.data_normalization(combined_data_df, presented_groups, paths[2])
 
-    # Combine the values from norm_data_df to calculate average and standard devaition of
+    # Combine the values from norm_data_df to calculate average and standard deviation of
     # each condition and combined it all into one dataframe.
     dp.data_average(
         norm_data_df, time_list_mins, group_dict, presented_groups, paths[3]
@@ -127,7 +127,7 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
     # Move the processed data to the processed folder in specific folder
     # corresponding to the test + conditions if the folder does not exist,
     # create the folder and move the file there, otherwise, move the file to the
-    # corresponsing folder
+    # corresponding folder
     if not os.path.exists(paths[4]):
         os.mkdir(paths[4])
     else:
@@ -148,8 +148,8 @@ def main(test: str):
 
     """
     t_dict, _ = file_search(test)
-    trig = trig_selection(t_dict)
-    exp_data_processing(test, trig, "csv")
+    for trig in t_dict.values():
+        exp_data_processing(test, trig, "csv")
 
 
 if __name__ == "__main__":

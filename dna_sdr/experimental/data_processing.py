@@ -9,7 +9,6 @@ It combines, normalizes, averages, summarizes the data collected.
 
 import glob
 import os
-
 import pandas as pd
 import regex as re
 
@@ -382,39 +381,7 @@ def data_combination(
             data = df.iloc[:, list(range(1, control_tube[0]))]
 
         data_minus_baseline = data.subtract(avg_neg_control, axis=0)
-        only_starter = starter(data_minus_baseline, avg_pos_control_minus_baseline)
-        return only_starter
-
-    # TODO: Read over the condition
-    def starter(
-        dataframe: pd.DataFrame, avg_pos_control_minus_baseline: pd.Series
-    ) -> pd.DataFrame:
-        """
-        Drop the samples that did not start by cycle 3 and change in values between
-        initial and cycle 4 is less than 0.05
-        """
-        norm_data = dataframe.div(avg_pos_control_minus_baseline, axis=0)
-        final_value = norm_data.iloc[-1, :]
-        ind_norm_data = norm_data.div(final_value, axis=1)
-
-        drop_columns = []
-        for col in range(len(ind_norm_data.columns)):
-            loc_0 = ind_norm_data.iloc[0, col]
-            loc_3 = ind_norm_data.iloc[3, col]
-            loc_4 = ind_norm_data.iloc[4, col]
-
-            if (
-                isinstance(loc_0, float)
-                and isinstance(loc_3, float)
-                and isinstance(loc_4, float)
-            ):
-                if loc_4 - loc_0 < 0.05 and loc_3 < 0:
-                    drop_columns.append(str(col + 1))
-            else:
-                raise ValueError()
-        print(drop_columns)
-        dataframe.drop(columns=drop_columns, inplace=True)
-        return dataframe
+        return data_minus_baseline
 
     # initial data after subtraction of baseline and data cleaning
     count = 0
@@ -428,11 +395,11 @@ def data_combination(
     query_str = fn + f"*.{ext}"
 
     for file in glob.glob(query_str):
-        starter_only = processing(file, groups)
+        exp_df = processing(file, groups)
         if count == 0:
-            combined_df = starter_only
+            combined_df = exp_df
         else:
-            combined_df = pd.concat([combined_df, starter_only], axis=1)
+            combined_df = pd.concat([combined_df, exp_df], axis=1)
         count += 1
 
     # TODO: Check if we need to export the df into a pickle file
