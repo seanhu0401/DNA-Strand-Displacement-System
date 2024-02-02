@@ -73,7 +73,7 @@ if __name__ == "__main__":
                 "t1"
             ].complex_concentrations.items():
                 if complex_sturc.name == trig_base_complex:
-                    conc_list.append(conc * 10 ** 9)
+                    conc_list.append(conc * 10**9)
     else:
         raise ValueError()
 

@@ -21,10 +21,10 @@ from statsmodels.formula.api import ols
 
 
 def __array_to_df(
-        data: np.ndarray,
-        condition: list,
-        group_name: str = "group",
-        value_name: str = "value",
+    data: np.ndarray,
+    condition: list,
+    group_name: str = "group",
+    value_name: str = "value",
 ):
     """The function takes in a numpy array, a condition list, and optional group and value names, and
     returns a pandas DataFrame with the array values and corresponding group labels, as well as the list
@@ -194,7 +194,7 @@ def general_esd(data: NDArray, poss_outlier_count: int = 5, alpha: float = 0.05)
         p_value = 1 - (alpha / (2 * sample_count))
         t_distribution = stats.t.ppf(p_value, degree_freedom)
         num = (sample_count - 1) * t_distribution
-        deno = np.sqrt((degree_freedom + t_distribution ** 2) * sample_count)
+        deno = np.sqrt((degree_freedom + t_distribution**2) * sample_count)
         crit_value = num / deno
         return crit_value
 
@@ -296,11 +296,11 @@ def outlier_detection(data: list, analysis_target: list):
 
 
 def anova_test(
-        data: pd.DataFrame,
-        parameter: list,
-        model: str,
-        dependent: str,
-        independent: str = "plate_loc",
+    data: pd.DataFrame,
+    parameter: list,
+    model: str,
+    dependent: str,
+    independent: str = "plate_loc",
 ):
     """
     ANOVA test utilizing the linear ANOVA model with type 2 sum of squares from statsmodel.
@@ -380,7 +380,7 @@ def anova_table(aov):
     aov["eta_sq"] = aov[:-1]["sum_sq"] / sum(aov["sum_sq"])
 
     aov["omega_sq"] = (aov[:-1]["sum_sq"] - (aov[:-1]["df"] * aov["mean_sq"][-1])) / (
-            sum(aov["sum_sq"]) + aov["mean_sq"][-1]
+        sum(aov["sum_sq"]) + aov["mean_sq"][-1]
     )
 
     cols = ["sum_sq", "df", "mean_sq", "F", "PR(>F)", "eta_sq", "omega_sq"]
@@ -542,13 +542,13 @@ def conover_iman_test(data: np.ndarray, conditions: list, adj_method: str = "hs"
         counts[counts["value"] != 1]["value"] ** 3
         - counts[counts["value"] != 1]["value"]
     )
-    tie_correction = 1 - (tie_sum / (total_obs ** 3 - total_obs))
+    tie_correction = 1 - (tie_sum / (total_obs**3 - total_obs))
 
     if tie_correction == 1:
         s2 = (total_obs * (total_obs + 1)) / 12
     else:
         s2 = (1 / (total_obs - 1)) * (
-                np.sum(frame["rank"] ** 2) - ((total_obs * ((total_obs + 1) ** 2)) / 4)
+            np.sum(frame["rank"] ** 2) - ((total_obs * ((total_obs + 1) ** 2)) / 4)
         )
 
     comparison_lst = list(it.combinations(groups, 2))
@@ -609,7 +609,7 @@ def data_dist_plot(data: pd.DataFrame, mode: str):
 
 
 def parameter_array(
-        data: pd.DataFrame, mode: str, analysis_target: list[str]
+    data: pd.DataFrame, mode: str, analysis_target: list[str]
 ) -> tuple[list, list] | list:
     """The function `parameter_array` takes in a DataFrame, a mode, and a list of analysis targets, and
     returns a tuple of lists containing rate and plateau values if the mode is "one_phase", otherwise it

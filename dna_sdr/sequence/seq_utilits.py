@@ -90,7 +90,7 @@ def sequence_comparison(seq_1: str, seq_2: str) -> dict[int, int]:
 
 
 def trig_aligment(
-        trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
+    trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
 ) -> tuple[int, int, int, list[int], list[int]]:
     """
     xxx
@@ -111,7 +111,7 @@ def trig_aligment(
     """
 
     def tb_ob_calculation(
-            t1: DNA, t2: DNA, toehold_b: int, overhang_b: int
+        t1: DNA, t2: DNA, toehold_b: int, overhang_b: int
     ) -> tuple[int, int]:
         base_difference = abs(t1.base_count - t2.base_count)
         new_tb = toehold_b
@@ -166,7 +166,7 @@ def trig_aligment(
 
 
 def name_generation(
-        toehold_b: int, overhang_b: int, mismatch: list[int], type_mismatch: list[int]
+    toehold_b: int, overhang_b: int, mismatch: list[int], type_mismatch: list[int]
 ) -> str:
     """
     xxx
@@ -200,7 +200,7 @@ def name_generation(
 
 
 def seq_info(
-        fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+    fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
 ) -> pd.DataFrame:
     """
     xxx
