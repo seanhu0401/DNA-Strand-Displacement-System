@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     if trig_lst:
         for index, trigger in enumerate(trig_lst):
-            trig = nupack.Strand((trigger), name=name_lst[index])
+            trig = nupack.Strand(trigger, name=name_lst[index])
             trig_base_complex = f"({name_lst[index]}+base)"
             t1 = nupack.Tube(
                 strands={base: 5e-7, incumb: 5e-7, trig: 5e-7},
