@@ -75,7 +75,7 @@ def trig_list_gen(fname_list: list[str]) -> list[str]:
 
 
 def file_path_generation(
-    test_type: str, trig_type: str
+    test_type: str, trig_type: str, fluorophore: str
 ) -> tuple[str, str, str, str, str]:
     """
     Generate the file paths that are used to save the various dataframe into pickle files.
@@ -111,7 +111,7 @@ def file_path_generation(
     parent_dir = "../Processed/"
 
     if test_type in {"Ratio", "Screen", "Conc"}:
-        dir_name = f"4WJ_HEX_{test_type}_{trig_type}"
+        dir_name = f"4WJ_{fluorophore}_{test_type}_{trig_type}"
     else:
         raise ValueError(f"unknown test type - {test_type}")
 
@@ -508,7 +508,7 @@ def data_average(
     norm_combined_data_df.to_pickle(sdata_path)
 
 
-def data_summarization(path: str, test_type: str) -> None:
+def data_summarization(path: str, test_type: str, fluorophore: str) -> None:
     """The function `data_summarization` takes a path and test type as input, searches for specific files
     in the given path, groups and filters the data, and saves the filtered data into pickle files.
 
@@ -524,7 +524,7 @@ def data_summarization(path: str, test_type: str) -> None:
     """
 
     t1_lst = []
-    search_str = f"*_{test_type}_*_normalized.pkl"
+    search_str = f"*_{fluorophore}_{test_type}_*_normalized.pkl"
     for location in glob.glob(os.path.join(path, search_str)):
         fname = location.split("/")[-1]
         print(fname)
@@ -554,7 +554,7 @@ def data_summarization(path: str, test_type: str) -> None:
             filtered_df = df.loc[:, v]
             file_path = os.path.join(
                 os.getcwd(),
-                f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_{k}.pkl",
+                f"dna_sdr/IO/Output/Individual/4WJ_{fluorophore}_{test_type}_{k}.pkl",
             )
             # TODO: Make sure it won't duplicate
             # Check if the new df is a subset of the old df
@@ -572,13 +572,14 @@ def data_summarization(path: str, test_type: str) -> None:
             t1_df.to_pickle(
                 os.path.join(
                     os.getcwd(),
-                    f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1_100.pkl",
+                    f"dna_sdr/IO/Output/Individual/4WJ_{fluorophore}_{test_type}_T1_100.pkl",
                 )
             )
         else:
             t1_df.to_pickle(
                 os.path.join(
-                    os.getcwd(), f"dna_sdr/IO/Output/Individual/4WJ_HEX_{test_type}_T1.pkl"
+                    os.getcwd(),
+                    f"dna_sdr/IO/Output/Individual/4WJ_{fluorophore}_{test_type}_T1.pkl",
                 )
             )
 
@@ -622,4 +623,5 @@ def parameter(path: str) -> None:
 
 if __name__ == "__main__":
     print()
-    data_summarization("./dna_sdr/IO/Output/Group/", "Ratio")
+    F = "HEX"
+    data_summarization("./dna_sdr/IO/Output/Group/", "Ratio", F)

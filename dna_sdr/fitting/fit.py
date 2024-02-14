@@ -1,6 +1,7 @@
 """
 xxx
 """
+
 import glob
 import os
 import pickle
@@ -17,13 +18,12 @@ time_lst = time_list_generation(60)
 
 
 def one_phase_association(time: float, plateau: float, k: float, y_0: float) -> float:
-    """The function calculates the value of a one-phase association reaction over time.
-    """
+    """The function calculates the value of a one-phase association reaction over time."""
     return y_0 + (plateau - y_0) * (1 - np.exp(-k * time))
 
 
 def lag_one_phase_association(
-        time: float, plateau: float, k: float, time_0: float, y_0: float
+    time: float, plateau: float, k: float, time_0: float, y_0: float
 ) -> float:
     """The function calculates the value of a one-phase association reaction over time.
 
@@ -50,8 +50,8 @@ def lag_one_phase_association(
     """
     step = logistic(time, center=time_0, sigma=0.1)
     return (
-            y_0 * (1 - step)
-            + (y_0 + (plateau - y_0) * (1 - np.exp(-k * (time - time_0)))) * step
+        y_0 * (1 - step)
+        + (y_0 + (plateau - y_0) * (1 - np.exp(-k * (time - time_0)))) * step
     )
 
 
@@ -174,7 +174,9 @@ def individual_fit(file: str, equation: str, labels: list[str]):
 
         return res, param_group_list
 
-    def _kinetic_fitting(data: pd.Series, param_group_list: list[str | int], condition: str | None = None):
+    def _kinetic_fitting(
+        data: pd.Series, param_group_list: list[str | int], condition: str | None = None
+    ):
         if test == "Conc":
             factor = int(condition) / 100
             y0 = [500 * factor, 500, 0, 0]
@@ -209,7 +211,10 @@ def individual_fit(file: str, equation: str, labels: list[str]):
             trigs = name.split("_")[-2]
         params_group_list = [trigs, cond]
     elif test == "Ratio":
-        trigs = ["_".join(name.split("_")[3:5]), "_".join(name.split("_")[5:7])]
+        trigs: list[str] = [
+            "_".join(name.split("_")[3:5]),
+            "_".join(name.split("_")[5:7]),
+        ]
         cond = "_".join(name.split("_")[-2:])
         params_group_list = [*trigs, cond]
     else:
@@ -223,22 +228,17 @@ def individual_fit(file: str, equation: str, labels: list[str]):
         param_list = params_group_list[:]
         if equation == "one_phase":
             if test in {"Conc", "Ratio"}:
-                result, param_list = _one_phase_fitting(
-                    trial, param_list
-                )
+                result, param_list = _one_phase_fitting(trial, param_list)
             else:
                 result, param_list = _one_phase_fitting(
-                    trial, param_list,
+                    trial,
+                    param_list,
                 )
         elif equation == "sec_kinetic":
             if test in "Conc":
-                result, param_list = _kinetic_fitting(
-                    trial, param_list, cond
-                )
+                result, param_list = _kinetic_fitting(trial, param_list, cond)
             else:
-                result, param_list = _kinetic_fitting(
-                    trial, param_list
-                )
+                result, param_list = _kinetic_fitting(trial, param_list)
         else:
             raise ValueError()
 
@@ -255,7 +255,7 @@ def individual_fit(file: str, equation: str, labels: list[str]):
 
 
 def parameter_determination(
-        test: str,
+    test: str,
 ) -> tuple[pd.DataFrame, pd.DataFrame, list[dict[str, dict]], list[dict[str, dict]]]:
     """The `parameter_determination` function takes in a test name and an optional parameter indicating
     whether to process individual files, and returns dataframes and lists containing parameter
@@ -305,11 +305,11 @@ def parameter_determination(
         return one_phase_list, kinetic_list
 
     def result_combination(
-            file: str,
-            param_lst: list[dict[str, str]],
-            result: dict,
-            result_lst: list[dict],
-            param_df_lst: list[pd.DataFrame],
+        file: str,
+        param_lst: list[dict[str, str]],
+        result: dict,
+        result_lst: list[dict],
+        param_df_lst: list[pd.DataFrame],
     ):
         test = file.split(".")[0].split("Conc_")[-1]
         result_lst.append({f"{test}": result})
@@ -364,9 +364,9 @@ def parameter_determination(
 
 
 def storage(
-        fit_results: tuple[pd.DataFrame, list[dict[str, dict]]],
-        test: str,
-        equation: str,
+    fit_results: tuple[pd.DataFrame, list[dict[str, dict]]],
+    test: str,
+    equation: str,
 ) -> None:
     """The `storage` function saves a DataFrame and a dictionary to pickle files based on the provided
     parameters.
@@ -426,7 +426,7 @@ def main(test: str):
 
 if __name__ == "__main__":
     # test_types = ["Screen", "Conc", "Ratio"]
-    test_types = ["Screen"]
+    test_types = ["Ratio"]
     for test_type in test_types:
         print(test_type)
         main(test_type)

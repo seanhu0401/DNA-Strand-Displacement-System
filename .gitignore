@@ -3,6 +3,8 @@
 .vscode
 .idea
 .pytest_cache
+.*cache
+
 IO
 Ignore
 __pycache__

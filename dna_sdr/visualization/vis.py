@@ -133,10 +133,10 @@ def seq_comp_plot(seq_1: str, seq_2: str, ax: Axes | None = None) -> Axes:
 
 
 def scatter_plot(
-        release_df: pd.DataFrame,
-        test_type: str,
-        label: str | None = None,
-        ax: Axes | None = None,
+    release_df: pd.DataFrame,
+    test_type: str,
+    label: str | None = None,
+    ax: Axes | None = None,
 ) -> Axes:
     """The scatter_plot function creates a scatter plot with error bars using data from a DataFrame.
 
@@ -178,7 +178,7 @@ def scatter_plot(
 
 
 def regression_plot(
-        release_df: pd.DataFrame, model, fit_params, label, ax: Axes | None = None
+    release_df: pd.DataFrame, model, fit_params, label, ax: Axes | None = None
 ) -> Axes:
     """The function `regression_plot` plots the fitted regression line on a given axis using the provided
     model and fit parameters.
@@ -224,10 +224,13 @@ def regression_plot(
 
 
 def swarm_box_plot(
-        df: pd.DataFrame,
-        x_target: str,
-        param_type: str,
-        ax: Axes | None = None,
+    df: pd.DataFrame,
+    x_target: str,
+    param_type: str,
+    ax: Axes | None = None,
+    hue: str | None = None,
+    palette: tuple | None = None,
+    legend: bool = True,
 ) -> Axes:
     """The `swarm_box_plot` function creates a combined box plot and swarm plot using the Seaborn library
     in Python.
@@ -271,6 +274,8 @@ def swarm_box_plot(
         "capprops": {"linewidth": 0.8},
         "ax": ax,
         "fill": True,
+        "hue": hue,
+        "legend": legend,
     }
     swarm_plot_info = {
         "x": x_target,
@@ -281,20 +286,24 @@ def swarm_box_plot(
         "ax": ax,
         "legend": False,
         "dodge": True,
+        "hue": hue,
     }
-
-    sns.boxplot(**box_plot_info)
-    sns.swarmplot(**swarm_plot_info)
+    if palette is None:
+        sns.boxplot(**box_plot_info)
+        sns.swarmplot(**swarm_plot_info)
+    else:
+        sns.boxplot(palette=sns.color_palette(palette[0]), **box_plot_info)
+        sns.swarmplot(palette=sns.color_palette(palette[1]), **swarm_plot_info)
     return ax
 
 
 def release_grid_plot(
-        data: pd.Series,
-        result: ModelResult,
-        max_value: float,
-        time: list[float] | None = None,
-        ax: Axes | None = None,
-        props: dict[str, str | float] | None = None,
+    data: pd.Series,
+    result: ModelResult,
+    max_value: float,
+    time: list[float] | None = None,
+    ax: Axes | None = None,
+    props: dict[str, str | float] | None = None,
 ) -> Axes:
     """The `release_grid_plot` function plots data points and a model evaluation on a grid, with additional
     information displayed in a text box.
@@ -369,20 +378,8 @@ if __name__ == "__main__":
     TEST = "Screen"
     INFO = "./dna_sdr/pickles/trig_info.pkl"
     PARAMS = f"./dna_sdr/pickles/individual_{TEST}_params.pkl"
-    #
-    # READ = ["P1_A1", "P1_A7", "P1_A8", "P1_A9", "P1_A10"]
-    #
-    # READ = ["P0_A1", "P2_A5", "P2_A6"]
-    ### Mismatch type 4-6 same location (18)
-    # READ = ["P2_A7", "P3_A3", "P3_A4"]
-    ### Mismatch type 7-9 same location (15)
-    # READ = ["P2_A3", "P3_A5", "P3_A6"]
     ### Mismatch type 6/7
     # READ = ["P2_A3", "P2_A7", "P2_D4", "P2_D5"]
-    ### Mismatch type 2/8
-    READ = ["P0_A5", "P2_A1", "P2_A5", "P2_A10", "P2_D9", "P3_A1", "P3_A5"]
-    ###
-    # READ = ["P0_A1", "P2_A5", "P2_A6", "P0_A5", "P2_D6", "P2_D7"]
     ###
     # READ = ["P0_A1", "P2_A2", "P2_A4", "P2_D3", "P2_D7", "P2_D11"]
     ###
@@ -399,29 +396,6 @@ if __name__ == "__main__":
     #     "P2_D7",
     #     "P2_D11",
     # ]
-    info_df: pd.DataFrame = pd.read_pickle(INFO)
-    params_df: pd.DataFrame = pd.read_pickle(PARAMS)
-    result_df = pd.merge(info_df, params_df, on="plate_loc")
-    read_df = result_df[result_df["plate_loc"].isin(READ)]
-
-    # print(read_df[read_df["plate_loc"].isin(READ)])
-
-    # TODO: Make this permenent
-    # quick result - still have issues
-    # x = "toehold"
-    # x_label = "Toehold (nt)"
-    x = "mismatch_type"
-    x_label = "Mismatch Location"
-
-    type_lst = [i[0] for i in read_df[x]]
-    read_df[x] = type_lst
-    loc_lst = [i[0] for i in read_df["mismatch_loc"]]
-    read_df["mismatch_loc"] = loc_lst
-
-    curve_df = read_df[read_df["r_sq_curve"] >= 0.5]
-    kinetic_df = read_df[read_df["r_sq_kin"] >= 0.5]
-    # print(curve_df)
-    # print(kinetic_df)
 
     # sns.scatterplot(
     #     x="plateau",
@@ -433,104 +407,6 @@ if __name__ == "__main__":
     #     style="mismatch_loc",
     # )
     # axes[0, 0].set_yscale("log")
-
-    ### 1-3 Mismatch Type - Two different location
-    # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
-    # sns.boxplot(
-    #     data=kinetic_df,
-    #     x="mismatch_type",
-    #     y="k_rate",
-    #     hue="mismatch_loc",
-    #     palette=sns.color_palette("pastel"),
-    #     ax=axes[0, 1],
-    #     flierprops={"marker": "x"},
-    #     fill=True,
-    #     log_scale=True,
-    #     legend=False,
-    # )
-    # sns.swarmplot(
-    #     data=kinetic_df,
-    #     x="mismatch_type",
-    #     y="k_rate",
-    #     hue="mismatch_loc",
-    #     ax=axes[0, 1],
-    #     dodge=True,
-    #     palette=sns.color_palette("dark"),
-    #     legend=False,
-    #     size=3,
-    # )
-
-    # sns.boxplot(
-    #     data=curve_df,
-    #     x="mismatch_type",
-    #     y="plateau",
-    #     hue="mismatch_loc",
-    #     ax=axes[1, 0],
-    #     palette=sns.color_palette("pastel"),
-    #     flierprops={"marker": "x"},
-    # )
-    # sns.swarmplot(
-    #     data=curve_df,
-    #     x="mismatch_type",
-    #     y="plateau",
-    #     hue="mismatch_loc",
-    #     ax=axes[1, 0],
-    #     dodge=True,
-    #     palette=sns.color_palette("dark"),
-    #     legend=False,
-    #     size=3,
-    # )
-    # sns.move_legend(
-    #     axes[1, 0],
-    #     "lower center",
-    #     bbox_to_anchor=(0.5, 1),
-    #     ncol=4,
-    #     title=None,
-    #     frameon=False,
-    # )
-
-    # sns.boxplot(
-    #     data=curve_df,
-    #     x="mismatch_type",
-    #     y="rate",
-    #     hue="mismatch_loc",
-    #     palette=sns.color_palette("pastel"),
-    #     ax=axes[1, 1],
-    #     flierprops={"marker": "x"},
-    #     fill=True,
-    #     log_scale=True,
-    #     legend=False,
-    # )
-    # sns.swarmplot(
-    #     data=curve_df,
-    #     x="mismatch_type",
-    #     y="rate",
-    #     hue="mismatch_loc",
-    #     ax=axes[1, 1],
-    #     dodge=True,
-    #     palette=sns.color_palette("dark"),
-    #     legend=False,
-    #     size=3,
-    # )
-
-    # axes[0, 1].set(xlabel=x_label, ylabel="Rate (nM/min)")
-    # axes[1, 0].set(xlabel=x_label, ylabel="Quantity (nM)")
-    # axes[1, 1].set(xlabel=x_label, ylabel="Rate (min$^{-1}$)")
-    # fig.savefig(
-    #     f"./dna_sdr/image/summery/{TEST}/mismatch_type_1_3_V1.pdf", format="pdf"
-    # )
-
-    # Toehold length variation plot
-    # fig, axes = plt.subplots(1, 3, figsize=(9.18, 5), layout="constrained")
-    # swarm_box_plot(kinetic_df, x, "k_rate", ax=axes[0])
-    # swarm_box_plot(curve_df, x, "plateau", ax=axes[1])
-    # swarm_box_plot(curve_df, x, "rate", ax=axes[2])
-    # axes[0].set(xlabel=x_label, ylabel="Rate (nM/min)")
-    # axes[0].set_yscale("log")
-    # axes[1].set(xlabel=x_label, ylabel="Quantity (nM)")
-    # axes[2].set(xlabel=x_label, ylabel="Rate (min$^{-1}$)")
-    # axes[2].set_yscale("log")
-    # fig.savefig(f"./dna_sdr/image/summery/{TEST}/toehold_V2.pdf", format="pdf")
 
     ### Mismatch location variation plot
     # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
@@ -545,35 +421,6 @@ if __name__ == "__main__":
     # fig.savefig(f"./dna_sdr/image/summery/{TEST}/mismatch_loc_V1.pdf", format="pdf")
     # fig.savefig(
     #     f"./dna_sdr/image/summery/{TEST}/mismatch_loc_mismatch_6_7.pdf", format="pdf"
-    # )
-
-    ### Mismatch type same location plot
-    # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
-    # swarm_box_plot(curve_df, "mismatch_type", "plateau", ax=axes[1, 0])
-    # swarm_box_plot(curve_df, "mismatch_type", "rate", ax=axes[1, 1])
-    # swarm_box_plot(kinetic_df, "mismatch_type", "k_rate", ax=axes[0, 1])
-    # axes[1, 1].set(xlabel=x_label, ylabel="Rate (min$^{-1}$)")
-    # axes[1, 1].set_yscale("log")
-    # axes[1, 0].set(xlabel=x_label, ylabel="Quantity (nM)")
-    # axes[0, 1].set(xlabel=x_label, ylabel="Rate (nM/min)")
-    # axes[0, 1].set_yscale("log")
-    # fig.savefig(
-    #     f"./dna_sdr/image/summery/{TEST}/mismatch_type_loc17_V1.pdf", format="pdf"
-    # )
-
-    ### Mismatch type same location plot
-    # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
-    # swarm_box_plot(curve_df, "mismatch_type", "plateau", ax=axes[1, 0])
-    # swarm_box_plot(curve_df, "mismatch_type", "rate", ax=axes[1, 1])
-    # swarm_box_plot(kinetic_df, "mismatch_type", "k_rate", ax=axes[0, 1])
-    # axes[1, 1].set(xlabel=x_label, ylabel="Rate (min$^{-1}$)")
-    # axes[1, 1].set_yscale("log")
-    # axes[1, 0].set(xlabel=x_label, ylabel="Quantity (nM)")
-    # axes[0, 1].set(xlabel=x_label, ylabel="Rate (nM/min)")
-    # axes[0, 1].set_yscale("log")
-    # fig.savefig(
-    #     f"./dna_sdr/image/summery/{TEST}/mismatch_type_loc15_group_3_V1.pdf",
-    #     format="pdf",
     # )
 
     plt.show()

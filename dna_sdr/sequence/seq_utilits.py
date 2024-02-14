@@ -140,13 +140,11 @@ def trig_aligment(
 
     new_tb, new_ob = tb_ob_calculation(trig1, trig2, toehold_b, overhang_b)
 
-    # TODO: Update the mismatch type defination
     for base in trig2.reverse_seq():
         base_at_loc = trig1.reverse_seq()[counter]
         if base != base_at_loc and counter < (trig2.base_count - new_ob):
             location = trig1.base_count - counter
             mismatch_loc.append(location)
-            # TODO: Change the mismatch_str format
             mismatch_str = f"{base_at_loc}-{base}"
             mismatch_type.append(mismatch_type_dict[mismatch_str])
             mismatch += 1
@@ -200,7 +198,7 @@ def name_generation(
 
 
 def seq_info(
-    fname: str, trig1: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
+    fname: str, trig: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
 ) -> pd.DataFrame:
     """
     xxx
@@ -226,7 +224,7 @@ def seq_info(
                 plate = re.findall(r"P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
-            info = trig_aligment(trig1, seq)
+            info = trig_aligment(trig, seq)
             name = name_generation(*info[:2], *info[3:])
             try:
                 dna_trig = Trigger(seq, name, *info, plate_loc)
@@ -243,11 +241,11 @@ if __name__ == "__main__":
     FNAME = "./dna_sdr/DNA_Strands.xlsx"
     PICKLE_NAME = "./dna_sdr/pickles/trig_info.pkl"
     Info_df = seq_info(FNAME)
-    if os.path.exists(PICKLE_NAME):
-        trigger_df = pd.read_pickle(PICKLE_NAME)
-        if Info_df.equals(trigger_df):
-            print("Same dataframe - no new file")
-        else:
-            Info_df.to_pickle(PICKLE_NAME)
-    else:
-        Info_df.to_pickle(PICKLE_NAME)
+    # if os.path.exists(PICKLE_NAME):
+    #     trigger_df = pd.read_pickle(PICKLE_NAME)
+    #     if Info_df.equals(trigger_df):
+    #         print("Same dataframe - no new file")
+    #     else:
+    #         Info_df.to_pickle(PICKLE_NAME)
+    # else:
+    #     Info_df.to_pickle(PICKLE_NAME)

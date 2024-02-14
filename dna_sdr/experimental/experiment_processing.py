@@ -13,7 +13,9 @@ import dna_sdr.experimental.data_processing as dp
 
 
 # * Potentially add the option arg here for conc. study
-def file_search(test_type: str, ext: str = "csv") -> tuple[dict[int, str], list[str]]:
+def file_search(
+    test_type: str, fluorophore: str, ext: str = "csv"
+) -> tuple[dict[int, str], list[str]]:
     """
     xxx
 
@@ -38,7 +40,7 @@ def file_search(test_type: str, ext: str = "csv") -> tuple[dict[int, str], list[
 
     # Loop through the files from the input folder and find the matching files for processing
     # Add the trigger type into a list and convert to a dict for selection
-    fname_search = "4WJ_HEX_" + f"{test_type}_*.{ext}"
+    fname_search = f"4WJ_{fluorophore}_{test_type}_*.{ext}"
     for f in glob.glob(fname_search):
         if f not in file_list:
             file_list.append(f)
@@ -75,7 +77,9 @@ def trig_selection(trig_type_dict: dict[int, str]) -> str:
     return selected_trig
 
 
-def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None:
+def exp_data_processing(
+    test_type: str, trigger_selected: str, ext: str, fluorophore: str
+) -> None:
     """
     xxx
 
@@ -93,7 +97,7 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
     # paths[2] = norm_cdata_path
     # paths[3] = sum_data_path
     # paths[4] = processed_path
-    paths = dp.file_path_generation(test_type, trigger_selected)
+    paths = dp.file_path_generation(test_type, trigger_selected, fluorophore)
     time_list_mins = dp.time_list_generation(60)
 
     if test_type not in {"Conc", "Screen", "Ratio"}:
@@ -137,7 +141,7 @@ def exp_data_processing(test_type: str, trigger_selected: str, ext: str) -> None
         shutil.move(os.path.join(os.getcwd(), f), os.path.join(paths[4], f))
 
 
-def main(test: str):
+def main(test: str, fluorophore: str):
     """
     xxx
 
@@ -147,11 +151,13 @@ def main(test: str):
 
 
     """
-    t_dict, _ = file_search(test)
+    t_dict, _ = file_search(test, fluorophore)
     for trig in t_dict.values():
-        exp_data_processing(test, trig, "csv")
+        print(trig)
+        exp_data_processing(test, trig, "csv", fluorophore)
 
 
 if __name__ == "__main__":
     TEST = "Ratio"
-    main(TEST)
+    F = "HEX"
+    main(TEST, F)
