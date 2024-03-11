@@ -2,6 +2,7 @@
 Module docstring
 """
 
+from copy import deepcopy
 import os
 
 import pandas as pd
@@ -89,7 +90,7 @@ def sequence_comparison(seq_1: str, seq_2: str) -> dict[int, int]:
     return seq_comp_dict
 
 
-def trig_aligment(
+def trig_alignment(
     trigger1: str, trigger2: str, toehold_b: int = 7, overhang_b: int = 5
 ) -> tuple[int, int, int, list[int], list[int]]:
     """
@@ -197,9 +198,7 @@ def name_generation(
     return base_name + full_mismatch_name
 
 
-def seq_info(
-    fname: str, trig: str = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
-) -> pd.DataFrame:
+def seq_info(fname: str) -> pd.DataFrame:
     """
     xxx
 
@@ -214,22 +213,29 @@ def seq_info(
     master_list = []
 
     for sname in xls.sheet_names:
+        if sname == "T3":
+            trig = "CAC CAC CCA TCT CAA AAC TCA TCT CAT CCA ACA"
+        else:
+            trig = "CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA"
         dna_seq_df = pd.read_excel(fname, sheet_name=sname)
         loc_df = dna_seq_df.filter(regex=r"P\d Location", axis=1)
         dna_seq = dna_seq_df["Seqences (5' to 3')"]
-        plate_loc = str()
         for count in range(len(dna_seq)):
             location = loc_df.iloc[count].dropna()
             for well in location:
                 plate = re.findall(r"P\d", location.index[0])[0]
                 plate_loc = "_".join([plate, well])
             seq = dna_seq.iloc[count]
-            info = trig_aligment(trig, seq)
-            name = name_generation(*info[:2], *info[3:])
+            info = trig_alignment(trig, seq)
+            info_copy = deepcopy(info)
+            name = name_generation(*info_copy[:2], *info_copy[3:])
+            if sname == "T3":
+                name = "_".join(["T3", name])
             try:
                 dna_trig = Trigger(seq, name, *info, plate_loc)
             except UnboundLocalError:
                 dna_trig = Trigger(seq, name, *info)
+
             master_list.append(dna_trig)
 
     trig_df = pd.DataFrame([vars(trig) for trig in master_list])
@@ -240,12 +246,26 @@ def seq_info(
 if __name__ == "__main__":
     FNAME = "./dna_sdr/DNA_Strands.xlsx"
     PICKLE_NAME = "./dna_sdr/pickles/trig_info.pkl"
-    Info_df = seq_info(FNAME)
-    # if os.path.exists(PICKLE_NAME):
-    #     trigger_df = pd.read_pickle(PICKLE_NAME)
-    #     if Info_df.equals(trigger_df):
-    #         print("Same dataframe - no new file")
-    #     else:
-    #         Info_df.to_pickle(PICKLE_NAME)
-    # else:
-    #     Info_df.to_pickle(PICKLE_NAME)
+    info_df = seq_info(FNAME)
+
+    max_mismatch: int = max(info_df["mismatch"])
+    location_str_lst = []
+    type_str_lst = []
+    for count in range(max_mismatch):
+        location_str_lst.append(f"mismatch_location_{count+1}")
+        type_str_lst.append(f"mismatch_type_{count+1}")
+    info_df[location_str_lst] = pd.DataFrame(
+        info_df.mismatch_loc.to_list(), index=info_df.index
+    )
+    info_df[type_str_lst] = pd.DataFrame(
+        info_df.mismatch_type.to_list(), index=info_df.index
+    )
+
+    if os.path.exists(PICKLE_NAME):
+        trigger_df = pd.read_pickle(PICKLE_NAME)
+        if info_df.equals(trigger_df):
+            print("Same dataframe - no new file")
+        else:
+            info_df.to_pickle(PICKLE_NAME)
+    else:
+        info_df.to_pickle(PICKLE_NAME)
