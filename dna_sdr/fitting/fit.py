@@ -149,12 +149,14 @@ def individual_fit(file: str, equation: str, labels: list[str]):
     """
 
     def _one_phase_fitting(data: pd.Series, param_group_list: list[str | int]):
-        if data.iloc[0] > 0:
+        if data.iloc[0] > 50:
             model = Model(one_phase_association)
-            params = model.make_params(plateau=250, k=0.01, y_0=0)
+            params = model.make_params(plateau=250, k=0.01, y_0=dict(value=10, min=0))
         else:
             model = Model(lag_one_phase_association)
-            params = model.make_params(plateau=250, k=0.01, time_0=100, y_0=0)
+            params = model.make_params(
+                plateau=250, k=0.01, time_0=20, y_0=dict(value=10, min=0)
+            )
 
         res = model.fit(data, params, time=time_lst)
 
@@ -162,13 +164,12 @@ def individual_fit(file: str, equation: str, labels: list[str]):
             [
                 res.best_values["plateau"],
                 res.best_values["k"],
+                res.best_values["y_0"],
                 res.rsquared,
                 res.params["plateau"].stderr,
                 res.params["k"].stderr,
             ]
         )
-        print(param_group_list)
-
         if len(labels) != len(param_group_list):
             raise ValueError("the fit output and the equation does not match")
 
@@ -177,11 +178,25 @@ def individual_fit(file: str, equation: str, labels: list[str]):
     def _kinetic_fitting(
         data: pd.Series, param_group_list: list[str | int], condition: str | None = None
     ):
-        if test == "Conc":
-            factor = int(condition) / 100
-            y0 = [500 * factor, 500, 0, 0]
+        if data.iloc[0] > 50:
+            one_phase = Model(one_phase_association)
+            one_phase_params = one_phase.make_params(
+                plateau=250, k=0.01, y_0=dict(value=10, min=0)
+            )
         else:
-            y0 = [500, 500, 0, 0]
+            one_phase = Model(lag_one_phase_association)
+            one_phase_params = one_phase.make_params(
+                plateau=250, k=0.01, time_0=20, y_0=dict(value=10, min=0)
+            )
+        plateau = one_phase.fit(data, one_phase_params, time=time_lst).best_values[
+            "plateau"
+        ]
+
+        if test == "Conc" and condition is not None:
+            factor = int(condition) / 100
+            y0 = [500 * factor, plateau, 0, 0]
+        else:
+            y0 = [500, plateau, 0, 0]
 
         model = Model(sec_kin_fit, independent_vars=["t", "y0"])
         params = model.make_params(k1={"value": 1e-05, "min": 1e-08, "max": 100.0})
@@ -202,7 +217,7 @@ def individual_fit(file: str, equation: str, labels: list[str]):
     test = name.split("_")[2]
 
     if test == "Screen":
-        trigs = "_".join(name.split("_")[-2:])
+        trigs: str | list[str] = "_".join(name.split("_")[-2:])
         params_group_list = [trigs]
     elif test == "Conc":
         trigs = "_".join(name.split("_")[-3:-1])
@@ -211,7 +226,7 @@ def individual_fit(file: str, equation: str, labels: list[str]):
             trigs = name.split("_")[-2]
         params_group_list = [trigs, cond]
     elif test == "Ratio":
-        trigs: list[str] = [
+        trigs = [
             "_".join(name.split("_")[3:5]),
             "_".join(name.split("_")[5:7]),
         ]
@@ -282,6 +297,7 @@ def parameter_determination(
         one_phase_list = [
             "plateau",
             "rate",
+            "y_0",
             "r_sq_curve",
             "plateau_error",
             "rate_error",
