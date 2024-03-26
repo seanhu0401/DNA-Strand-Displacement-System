@@ -17,7 +17,7 @@ from lmfit import Model
 from dna_sdr.fitting.model_function import (
     one_phase_association,
     lag_one_phase_association,
-    sec_kin_fit,
+    second_kinetic_IVP_solver,
 )
 
 from dna_sdr.experimental.data_processing import time_list_generation
@@ -26,24 +26,32 @@ time_lst = time_list_generation(60)
 
 
 def one_phase_fit(data: pd.Series) -> ModelResult:
-    if data.iloc[0] > 20:
-        model = Model(one_phase_association)
-        params = model.make_params(plateau=250, k=0.01, y_0=dict(value=20, min=0))
+    if data.iloc[0] > 10:
+        one_phase_model = Model(one_phase_association)
+        one_phase_params = one_phase_model.make_params(
+            plateau=dict(value=250, min=0), k=0.01, y_0=dict(value=20, min=0)
+        )
     else:
-        model = Model(lag_one_phase_association)
-        params = model.make_params(
-            plateau=250, k=0.01, time_0=20, y_0=dict(value=20, min=0)
+        one_phase_model = Model(lag_one_phase_association)
+        one_phase_params = one_phase_model.make_params(
+            plateau=dict(value=250, min=0), k=0.01, time_0=20, y_0=dict(value=20, min=0)
         )
 
-    res = model.fit(data, params, time=time_lst)
+    res = one_phase_model.fit(data, one_phase_params, time=time_lst)
     return res
 
 
 def kinetic_fit(
-    data: pd.Series, test: str, condition: str | None = None
+    data: pd.Series, test: str | None = None, condition: str | None = None
 ) -> ModelResult:
-    one_phase_result: ModelResult = one_phase_fit(data)
-    plateau: float = one_phase_result.best_values["plateau"]
+
+    try:
+        one_phase_result: ModelResult = one_phase_fit(data)
+        plateau: float = one_phase_result.best_values["plateau"]
+    except ValueError as e:
+        print(e)
+        one_phase_result: ModelResult = one_phase_fit(data)
+        plateau: float = one_phase_result.best_values["plateau"]
 
     if test == "Conc" and condition is not None:
         factor: float = int(condition) / 100
@@ -51,10 +59,12 @@ def kinetic_fit(
     else:
         y0: list[float] = [500, plateau, 0, 0]
 
-    model = Model(sec_kin_fit, independent_vars=["t", "y0"])
-    params = model.make_params(k1={"value": 1e-05, "min": 1e-08, "max": 100.0})
+    kinetic_model = Model(second_kinetic_IVP_solver, independent_vars=["t", "y0"])
+    kinetic_params = kinetic_model.make_params(
+        k1={"value": 1e-05, "min": 1e-08, "max": 100.0}
+    )
 
-    res = model.fit(data, params, t=time_lst, y0=y0)
+    res = kinetic_model.fit(data, kinetic_params, t=time_lst, y0=y0)
 
     return res
 
@@ -181,16 +191,16 @@ def parameter_determination(test: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     for f in glob.glob(str_query):
         print(f)
 
-        one_phase_params_list = individual_fit(f, "one_phase", one_phase_list)
-        sec_kinetic_params_list = individual_fit(f, "sec_kinetic", kinetic_list)
+        one_phase_params_lst = individual_fit(f, "one_phase", one_phase_list)
+        sec_kinetic_params_lst = individual_fit(f, "kinetic", kinetic_list)
 
         one_phase_df_lst = result_combination(
-            one_phase_params_list,
+            one_phase_params_lst,
             one_phase_df_lst,
         )
 
         sec_kinetic_df_lst = result_combination(
-            sec_kinetic_params_list,
+            sec_kinetic_params_lst,
             sec_kinetic_df_lst,
         )
 
@@ -224,7 +234,6 @@ def storage(
     new_df.to_pickle(param_fname)
 
 
-# TODO: redo the os path finding with os.path.join
 def main(test: str):
     """The main function changes the current directory based on the individual parameter, calls the
     parameter_determination function with the test_type and individual parameters, changes the directory
@@ -245,8 +254,8 @@ def main(test: str):
     os.chdir("../../../..")
 
     os.chdir("./dna_sdr/pickles/")
-    # storage(output[0], test, "one_phase")
-    # storage(output[1], test, "second_kinetic")
+    storage(output[0], test, "one_phase")
+    storage(output[1], test, "second_kinetic")
     os.chdir("../..")
 
 
