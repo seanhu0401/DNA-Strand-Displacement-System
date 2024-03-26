@@ -85,8 +85,8 @@ def second_kinetic(t: list[float], y0: list[float], k: float) -> list[float]:
     return ode
 
 
-def sec_kin_fit(t: list[float], y0: list[float], k1: float) -> np.ndarray:
-    """The function `sec_kin_fit` solves a second-order kinetic equation using the `solve_ivp` function and
+def second_kinetic_IVP_solver(t: list[float], y0: list[float], k1: float) -> np.ndarray:
+    """The function `second_kinetic_IVP_solver` solves a second-order kinetic equation using the `solve_ivp` function and
     returns the third element of the solution.
 
     Parameters
@@ -113,7 +113,7 @@ def sec_kin_fit(t: list[float], y0: list[float], k1: float) -> np.ndarray:
         y0,
         t_eval=t,
         args=(k1,),
-        rtol=1e-9,
-        method="RK45",
+        rtol=1e-8,
+        method="BDF",
     )
     return release_matrix.y[2]
