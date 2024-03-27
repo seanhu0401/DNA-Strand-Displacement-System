@@ -114,6 +114,6 @@ def second_kinetic_IVP_solver(t: list[float], y0: list[float], k1: float) -> np.
         t_eval=t,
         args=(k1,),
         rtol=1e-8,
-        method="BDF",
+        method="RK45",
     )
     return release_matrix.y[2]

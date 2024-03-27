@@ -29,12 +29,12 @@ def one_phase_fit(data: pd.Series) -> ModelResult:
     if data.iloc[0] > 10:
         one_phase_model = Model(one_phase_association)
         one_phase_params = one_phase_model.make_params(
-            plateau=dict(value=250, min=0), k=0.01, y_0=dict(value=20, min=0)
+            plateau=250, k=0.01, y_0=dict(value=20, min=0)
         )
     else:
         one_phase_model = Model(lag_one_phase_association)
         one_phase_params = one_phase_model.make_params(
-            plateau=dict(value=250, min=0), k=0.01, time_0=20, y_0=dict(value=20, min=0)
+            plateau=250, k=0.01, time_0=20, y_0=dict(value=20, min=0)
         )
 
     res = one_phase_model.fit(data, one_phase_params, time=time_lst)
@@ -44,25 +44,15 @@ def one_phase_fit(data: pd.Series) -> ModelResult:
 def kinetic_fit(
     data: pd.Series, test: str | None = None, condition: str | None = None
 ) -> ModelResult:
-
-    try:
-        one_phase_result: ModelResult = one_phase_fit(data)
-        plateau: float = one_phase_result.best_values["plateau"]
-    except ValueError as e:
-        print(e)
-        one_phase_result: ModelResult = one_phase_fit(data)
-        plateau: float = one_phase_result.best_values["plateau"]
-
     if test == "Conc" and condition is not None:
         factor: float = int(condition) / 100
-        y0: list[float] = [500 * factor, plateau, 0, 0]
+        y0: list[float] = [500 * factor, 500, 0, 0]
+
     else:
-        y0: list[float] = [500, plateau, 0, 0]
+        y0: list[float] = [500, 500, 0, 0]
 
     kinetic_model = Model(second_kinetic_IVP_solver, independent_vars=["t", "y0"])
-    kinetic_params = kinetic_model.make_params(
-        k1={"value": 1e-05, "min": 1e-08, "max": 100.0}
-    )
+    kinetic_params = kinetic_model.make_params(k1=1e-06)
 
     res = kinetic_model.fit(data, kinetic_params, t=time_lst, y0=y0)
 
@@ -249,7 +239,6 @@ def main(test: str):
     os.chdir("./dna_sdr/IO/Output/Individual/")
 
     output = parameter_determination(test)
-    print(output)
 
     os.chdir("../../../..")
 
