@@ -11,14 +11,14 @@ from lmfit.lineshapes import logistic
 from scipy.integrate import solve_ivp
 
 
-def one_phase_association(time: float, plateau: float, k: float, y_0: float) -> float:
+def one_phase_association(time: float, plateau: float, k: float, y_0: float):
     """The function calculates the value of a one-phase association reaction over time."""
     return y_0 + (plateau - y_0) * (1 - np.exp(-k * time))
 
 
 def lag_one_phase_association(
     time: float, plateau: float, k: float, time_0: float, y_0: float
-) -> float:
+):
     """The function calculates the value of a one-phase association reaction over time.
 
     Parameters

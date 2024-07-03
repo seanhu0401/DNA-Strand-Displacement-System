@@ -9,13 +9,14 @@ import seaborn as sns
 from lmfit.model import ModelResult
 from matplotlib import pylab
 from matplotlib.axes import Axes
+import matplotlib.ticker as mticker
 
 from dna_sdr.experimental.data_processing import time_list_generation
 from dna_sdr.sequence import seq_utilits
 from dna_sdr.sequence.dna_utilits import DNA
 
 params = {
-    # "figure.figsize": [6.4, 4.8],
+    "figure.figsize": [9.18, 5],
     "axes.labelsize": 14,
     "axes.titlesize": 14,
     "axes.linewidth": 1,
@@ -23,18 +24,37 @@ params = {
     "axes.spines.right": False,
     "axes.labelpad": 4,
     "axes.formatter.use_mathtext": True,
-    "errorbar.capsize": 5,
+    "errorbar.capsize": 1.7,
+    "lines.linewidth": 0.8,
     "xtick.labelsize": 12,
     "xtick.major.size": 4,
     "xtick.major.width": 1,
     "ytick.labelsize": 12,
     "ytick.major.size": 4,
     "ytick.major.width": 1,
+    "font.sans-serif": "Arial",
+    "font.family": "sans-serif",
 }
 
 pylab.rcParams.update(params)
+pd.set_option("display.max_columns", 20)
+pd.options.display.float_format = "{:.3e}".format
+formatter = mticker.ScalarFormatter(useMathText=True)
+formatter.set_powerlimits((-3, 2))
 
 marker_dict = {1: ".", 2: "x", 3: "s", 4: "|"}
+
+CB_color_cycle = [
+    "#377eb8",
+    "#ff7f00",
+    "#4daf4a",
+    "#f781bf",
+    "#a65628",
+    "#984ea3",
+    "#999999",
+    "#e41a1c",
+    "#dede00",
+]
 
 
 def mismatched_maker_gen(comparison_dict: dict[int, int]) -> dict[int, str]:
@@ -282,7 +302,7 @@ def swarm_box_plot(
         "y": param_type,
         "data": df,
         "color": "#7d0013",
-        "size": 3,
+        "size": 2.5,
         "ax": ax,
         "legend": False,
         "dodge": True,
@@ -377,50 +397,124 @@ def release_grid_plot(
 if __name__ == "__main__":
     TEST = "Screen"
     INFO = "./dna_sdr/pickles/trig_info.pkl"
-    PARAMS = f"./dna_sdr/pickles/individual_{TEST}_params.pkl"
-    ### Mismatch type 6/7
-    # READ = ["P2_A3", "P2_A7", "P2_D4", "P2_D5"]
-    ###
-    # READ = ["P0_A1", "P2_A2", "P2_A4", "P2_D3", "P2_D7", "P2_D11"]
-    ###
-    # READ = [
-    #     "P0_A1",
-    #     "P0_A5",
-    #     "P2_A2",
-    #     "P2_A4",
-    #     "P2_A5",
-    #     "P2_A6",
-    #     "P2_A10",
-    #     "P2_D3",
-    #     "P2_D6",
-    #     "P2_D7",
-    #     "P2_D11",
+    PARAMS = f"./dna_sdr/pickles/individual_{TEST}_param.pkl"
+    # NUPACK_CONC = "./dna_sdr/pickles/concentration_T3.pkl"
+    # DUMMY_REG = "./dna_sdr/pickles/rate_dummy_regression_v3.pkl"
+
+    info_df: pd.DataFrame = pd.read_pickle(INFO)
+    info_df = info_df.rename({"plate_loc": "Trig"}, axis=1)
+    params_df: pd.DataFrame = pd.read_pickle(PARAMS)
+    params_df = params_df.replace({"Screen_T1": "T1", "Screen_T3": "T3"})
+    # mean_t3_rate = np.mean(params_df[params_df["Trig"] == "T3"]["rate"])
+    # conc_df = pd.read_pickle(NUPACK_CONC)
+    # dummy_reg_result_df = pd.read_pickle(DUMMY_REG)
+    # result_df = pd.merge(info_df, params_df, on="Trig")
+    # df = result_df[(result_df["mismatch"] == 0) & (result_df["overhang"] == 0)]
+
+    # print(df)
+
+    # trig_name_lst = [index.strip("()").split("+")[0] for index in conc_df.index]
+    # conc_df["name"] = trig_name_lst
+    # conc_df = conc_df.rename(columns={"Conc (nM)": "NUPACK"})
+
+    # target_df = dummy_reg_result_df.merge(conc_df, how="inner", on="name")
+    # trig_lst = [
+    #     "P3_A8",
+    #     "P3_A9",
+    #     "P3_A10",
+    #     "P3_B1",
+    #     "P3_A11",
+    #     "P3_A12",
+    #     "P3_B4",
+    #     "P3_B3",
+    #     "P3_B2",
+    #     "P3_B5",
+    #     "P3_B6",
+    #     "P3_B7",
+    #     "P3_B10",
+    #     "P3_B9",
+    #     "P3_B8",
+    #     "P3_C1",
+    #     "P3_B11",
+    #     "P3_B12",
     # ]
 
-    # sns.scatterplot(
-    #     x="plateau",
-    #     y="rate",
-    #     data=curve_df,
-    #     hue="mismatch_type",
-    #     ax=axes[0, 0],
-    #     palette="bright",
-    #     style="mismatch_loc",
-    # )
-    # axes[0, 0].set_yscale("log")
+    # nupack_conc = target_df[
+    #     ["Trig", "NUPACK", "mismatch_type_1", "mismatch_location_1"]
+    # ]
+    # nupack_conc["Type"] = ["NUPACK"] * len(nupack_conc)
+    # nupack_conc.rename(columns={"NUPACK": "plateau"}, inplace=True)
+    # nupack_conc.plateau = nupack_conc.plateau / 500
 
-    ### Mismatch location variation plot
+    # experimental_conc = target_df[
+    #     [
+    #         "Trig",
+    #         "plateau_mean",
+    #         "plateau_std",
+    #         "mismatch_type_1",
+    #         "mismatch_location_1",
+    #     ]
+    # ]
+    # experimental_conc["Type"] = ["Exp"] * len(experimental_conc)
+    # experimental_conc.rename(
+    #     columns={"plateau_mean": "plateau", "plateau_std": "std"}, inplace=True
+    # )
+
+    # regression_conc = target_df[
+    #     [
+    #         "Trig",
+    #         "Prediction_plateau",
+    #         "range_plateau",
+    #         "mismatch_type_1",
+    #         "mismatch_location_1",
+    #     ]
+    # ]
+    # regression_conc["Type"] = ["Dummy"] * len(regression_conc)
+    # regression_conc.rename(
+    #     columns={"Prediction_plateau": "plateau", "range_plateau": "std"}, inplace=True
+    # )
+
+    # experimental_conc = target_df[
+    #     [
+    #         "Trig",
+    #         "rate_mean",
+    #         "rate_std",
+    #         "mismatch_type_1",
+    #         "mismatch_location_1",
+    #     ]
+    # ]
+    # experimental_conc["Type"] = ["Exp"] * len(experimental_conc)
+    # experimental_conc.rename(
+    #     columns={"rate_mean": "rate", "rate_std": "std"}, inplace=True
+    # )
+    # print(experimental_conc)
+
+    # regression_conc = target_df[
+    #     [
+    #         "Trig",
+    #         "Prediction_rate",
+    #         "range_rate",
+    #         "mismatch_type_1",
+    #         "mismatch_location_1",
+    #     ]
+    # ]
+    # regression_conc["Type"] = ["Dummy"] * len(regression_conc)
+    # regression_conc.rename(
+    #     columns={"Prediction_rate": "rate", "range_rate": "std"}, inplace=True
+    # )
+
+    # df = pd.concat([experimental_conc, nupack_conc, regression_conc])
+    # df = pd.concat([experimental_conc, regression_conc])
+    # dfp = df.pivot(index="Trig", columns="Type", values="plateau")
+    # dfp = df.pivot(index="Trig", columns="Type", values="rate")
+    # dfp = dfp.reindex(index=trig_lst)
+    # std = df.pivot(index="Trig", columns="Type", values="std")
+
     # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
-    # swarm_box_plot(curve_df, "mismatch_loc", "plateau", ax=axes[1, 0])
-    # swarm_box_plot(curve_df, "mismatch_loc", "rate", ax=axes[1, 1])
-    # swarm_box_plot(kinetic_df, "mismatch_loc", "k_rate", ax=axes[0, 1])
-    # axes[1, 1].set(xlabel=x_label, ylabel="Rate (min$^{-1}$)")
-    # axes[1, 0].set(xlabel=x_label, ylabel="Quantity (nM)")
-    # axes[1, 1].set_yscale("log")
-    # axes[0, 1].set(xlabel=x_label, ylabel="Rate (nM/min)")
-    # axes[0, 1].set_yscale("log")
-    # fig.savefig(f"./dna_sdr/image/summery/{TEST}/mismatch_loc_V1.pdf", format="pdf")
-    # fig.savefig(
-    #     f"./dna_sdr/image/summery/{TEST}/mismatch_loc_mismatch_6_7.pdf", format="pdf"
-    # )
+    # fig, axes = plt.subplots(1, 1, figsize=(9.18, 5), layout="constrained")
 
-    plt.show()
+    # plot = dfp.plot(kind="bar", yerr=std, rot=0, color=CB_color_cycle)
+
+    # fig = plot.get_figure()
+    # fig.savefig(f"./dna_sdr/image/summery/{TEST}/Dummy_Reg_Rate.pdf", format="pdf")
+    # plt.show()

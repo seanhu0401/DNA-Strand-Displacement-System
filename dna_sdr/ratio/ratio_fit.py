@@ -57,7 +57,7 @@ def pred_rate(conc_1: float, rate_1: float, conc_2: float, rate_2: float):
 
 
 if __name__ == "__main__":
-    CONC_RESULT = "./dna_sdr/pickles/conc_plateau_fit_result_unweighted_v3.pkl"
+    CONC_RESULT = "./dna_sdr/pickles/conc_plateau_fit_result_unweighted_v4.pkl"
     RATE_RESULT = "./dna_sdr/pickles/conc_rate.pkl"
 
     fit_result_df = pd.read_pickle(CONC_RESULT)

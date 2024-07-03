@@ -53,7 +53,7 @@ def fit_result_combine(
 
 
 if __name__ == "__main__":
-    TEST = "Ratio"
+    TEST = "Screen"
     FIT1 = "one_phase"
     FIT2 = "second_kinetic"
     PARAMS1 = f"./dna_sdr/pickles/individual_{TEST}_{FIT1}_param.pkl"

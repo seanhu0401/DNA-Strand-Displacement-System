@@ -1,6 +1,6 @@
 import pytest
 from dna_sdr.sequence.dna_utilits import DNA
-from dna_sdr.sequence.seq_utilits import trig_aligment
+from dna_sdr.sequence.seq_utilits import trig_alignment
 from dna_sdr.sequence.seq_utilits import name_generation
 
 test_lst = [
@@ -19,5 +19,5 @@ test_lst = [
 
 @pytest.mark.parametrize("trig, expected", test_lst)
 def test_seq_comparision(Comp_Trigger, trig, expected):
-    info = trig_aligment(Comp_Trigger, trig)
+    info = trig_alignment(Comp_Trigger, trig)
     assert name_generation(*info[:2], *info[3:]) == expected

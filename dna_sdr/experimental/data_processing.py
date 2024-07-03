@@ -16,7 +16,7 @@ import regex as re
 def _control_tube_location(
     file: str, groups: int
 ) -> tuple[tuple[int, int], list[str], bool]:
-    if file.split(".")[0].split("_")[-1] == "RC":
+    if "RC" in file:
         pos_con_tube_number = (groups * 4) + 1
         neg_con_tube_number = pos_con_tube_number + 4
         read_columns = [str(i) for i in range(1, neg_con_tube_number + 4)]
@@ -229,14 +229,16 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
         return group_lst, group_quant
 
     # Generate the groups for screening test type
-    if split_fname[2] == "Screen":
+    if "Screen" in fname:
         group_lst, group_quant = screen_cond()
 
-    elif split_fname[2] == "Conc":
+    elif "Conc" in fname:
         if option == "under":
             conc_lst = [100, 75, 50, 25]
         elif option == "over":
             conc_lst = [100, 125, 150, 175, 200]
+        elif option == "extra":
+            conc_lst = [100, 200, 300, 400, 500]
         else:
             raise ValueError(f"Unknown option - {option}")
 
@@ -249,7 +251,7 @@ def group_query(fname: str, option: str | None = None) -> tuple[int, list[str]]:
             group_lst.extend(name_lst)
         group_quant = len(group_lst)
 
-    elif split_fname[2] == "Ratio":
+    elif "Ratio" in fname:
         trig_1 = f"{split_fname[3]}_{match[0]}"
         trig_2 = f"{split_fname[5]}_{match[1]}"
         trig = f"{trig_1}_{trig_2}"
@@ -371,9 +373,6 @@ def data_combination(
         avg_neg_control = df.iloc[
             :, list(range(control_tube[0], control_tube[0] + 4))
         ].mean(axis=1)
-        pos_control = df.iloc[:, list(range(control_tube[1], control_tube[1] + 4))]
-        pos_control_minus_baseline = pos_control.subtract(avg_neg_control, axis=0)
-        avg_pos_control_minus_baseline = pos_control_minus_baseline.mean(axis=1)
 
         if reverse_control:
             data = df.iloc[:, list(range(1, control_tube[1]))]
@@ -584,44 +583,7 @@ def data_summarization(path: str, test_type: str, fluorophore: str) -> None:
             )
 
 
-def parameter(path: str) -> None:
-    """The function takes a path as input, reads two pickle files, filters the data based on trigger type,
-    merges the filtered data, and saves the merged data as a new pickle file.
-
-    Parameters
-    ----------
-    path : str
-        The `path` parameter is a string that represents the directory path where the pickle files are
-    located.
-
-    """
-
-    os.chdir(path)
-    curve_param_df = pd.read_pickle("screen_one_phase_param.pkl")
-    kinetic_param_df = pd.read_pickle("screen_kinetic_param.pkl")
-
-    trig_curve_param_df = curve_param_df.loc[curve_param_df["Trigger type"] != "T1"]
-    trig_kin_param_df = kinetic_param_df.loc[kinetic_param_df["Trigger type"] != "T1"]
-
-    trig_curve_param_df.to_pickle("trig_one_phase_param.pkl")
-    trig_kin_param_df.to_pickle("trig_kin_param.pkl")
-
-    trig_curve_param_df["plate_loc"] = (
-        trig_curve_param_df["Plate Number"] + "_" + trig_curve_param_df["Trigger type"]
-    )
-    trig_curve_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
-
-    trig_kin_param_df["plate_loc"] = (
-        trig_kin_param_df["Plate Number"] + "_" + trig_kin_param_df["Trigger type"]
-    )
-    trig_kin_param_df.drop(["Plate Number", "Trigger type"], axis=1, inplace=True)
-
-    param_df = pd.merge(trig_curve_param_df, trig_kin_param_df, on="plate_loc")
-    print(param_df)
-    # param_df.to_pickle("trig_param.pkl")
-
-
 if __name__ == "__main__":
     print()
     F = "HEX"
-    data_summarization("./dna_sdr/IO/Output/Group/", "Ratio", F)
+    data_summarization("./dna_sdr/IO/Output/Group/", "Screen", F)

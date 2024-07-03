@@ -87,4 +87,4 @@ class Trigger(DNA):
     mismatch: int = 0
     mismatch_loc: list[int] | None = None
     mismatch_type: list[int] | None = None
-    plate_loc: str | None = None
+    plate_loc: str = "T1"

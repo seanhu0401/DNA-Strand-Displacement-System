@@ -55,15 +55,15 @@ if __name__ == "__main__":
         aggfunc=["mean", "std", "median", "count"],
     )
 
-    print(pivot)
-    # fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
-    # swarm_box_plot(kinetic_df, "T1_Conc", "k_rate", ax=axes[0, 1])
-    # axes[0, 1].set(xlabel="Trigger 1 Ratio (%)", ylabel="Rate (nM/min)")
-    # swarm_box_plot(one_phase_df, "T1_Conc", "plateau", ax=axes[1, 0])
-    # swarm_box_plot(one_phase_df, "T1_Conc", "rate", ax=axes[1, 1])
-    # axes[1, 1].set(xlabel="Trigger 1 Ratio (%)", ylabel="Rate (min$^{-1}$)")
-    # axes[1, 0].set(xlabel="Trigger 1 Ratio (%)", ylabel="Quantity (nM)")
-    # plt.show()
+    # print(pivot)
+    fig, axes = plt.subplots(2, 2, figsize=(9.18, 5), layout="constrained")
+    swarm_box_plot(kinetic_df, "T1_Conc", "k_rate", ax=axes[0, 1])
+    axes[0, 1].set(xlabel="Trigger 1 Ratio (%)", ylabel="Rate (nM/min)")
+    swarm_box_plot(one_phase_df, "T1_Conc", "plateau", ax=axes[1, 0])
+    swarm_box_plot(one_phase_df, "T1_Conc", "rate", ax=axes[1, 1])
+    axes[1, 1].set(xlabel="Trigger 1 Ratio (%)", ylabel="Rate (min$^{-1}$)")
+    axes[1, 0].set(xlabel="Trigger 1 Ratio (%)", ylabel="Quantity (nM)")
+    plt.show()
 
     # fig.savefig(
     #     "./dna_sdr/image/summery/Ratio/T1_P0_A2_V3.pdf",

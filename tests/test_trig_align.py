@@ -1,5 +1,5 @@
 import pytest
-from dna_sdr.sequence.seq_utilits import trig_aligment
+from dna_sdr.sequence.seq_utilits import trig_alignment
 
 test_lst = [
     ("CA TAACA CA TCT CA CAATC CA TCT CA CCACC CA", (7, 5, 0, [], [])),
@@ -39,7 +39,7 @@ test_lst = [
 @pytest.mark.parametrize("trigger, expected", test_lst)
 def test_strand_align(Comp_Trigger, trigger, expected):
     try:
-        assert trig_aligment(Comp_Trigger, trigger) == expected
+        assert trig_alignment(Comp_Trigger, trigger) == expected
     except:
         with pytest.raises(TypeError):
-            trig_aligment(Comp_Trigger, trigger)
+            trig_alignment(Comp_Trigger, trigger)

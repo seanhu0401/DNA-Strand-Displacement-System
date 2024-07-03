@@ -4,13 +4,14 @@
 .idea
 .pytest_cache
 .*cache
+ignore*
 
 IO
-Ignore
 __pycache__
 pickles
 image
 result
+jupyter
 *.egg-info
 *.ipynb
 *.xlsx

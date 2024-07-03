@@ -38,48 +38,60 @@ if __name__ == "__main__":
 
     trig_dict = dict(zip(name_lst, trig_lst))
 
+    T1_trig_dict = {k: v for k, v in trig_dict.items() if "T3" not in k}
+    # T3_trig_dict = {k: v for k, v in trig_dict.items() if "T3" in k}
+
     base = nupack.Strand(
         "TG GGTGG TG AGA TG GATTG TG AGA TG TG AGA CAT ACA GCG CCG ACC GTA".replace(
             " ", ""
         ),
         name="base",
     )
+
+    # base_T3 = nupack.Strand(
+    #     "TG TTGGA TG AGA TG AGTTT TG AGA TG GG AGA CTC TGA AGG GAT GGC GCA".replace(
+    #         " ", ""
+    #     ),
+    #     name="base_t3",
+    # )
+
     incumb = nupack.Strand(
         ("CA CAATC CA TCT CA CCACC CA".replace(" ", "")), name="incumb"
     )
+
+    # incumb_T3 = nupack.Strand(
+    #     ("CA AAACT CA TCT CA TCCAA CA".replace(" ", "")), name="incumb_t3"
+    # )
 
     complex_list: list[str] = []
     free_energy_list: list[float] = []
     seq_list: list[str] = []
     conc_list: list[float] = []
 
-    if trig_lst:
-        for index, trigger in enumerate(trig_lst):
-            trig = nupack.Strand(trigger, name=name_lst[index])
-            trig_base_complex = f"({name_lst[index]}+base)"
-            t1 = nupack.Tube(
-                strands={base: 5e-7, incumb: 5e-7, trig: 5e-7},
-                complexes=nupack.SetSpec(max_size=3),
-                name="t1",
-            )
-            complex_result = nupack.complex_analysis(
-                complexes=t1, model=model1, compute=["pfunc"]
-            )
-            complex_list.append(trig_base_complex)
-            free_energy_list.append(complex_result[trig_base_complex].free_energy)
-            seq_list.append((trigger.replace(" ", "")))
-            complex_conc = nupack.complex_concentrations(tube=t1, data=complex_result)
-            for complex_sturc, conc in complex_conc[
-                "t1"
-            ].complex_concentrations.items():
-                if complex_sturc.name == trig_base_complex:
-                    conc_list.append(conc * 10**9)
-    else:
-        raise ValueError()
+    for tname, trigger in T1_trig_dict.items():
+        trig = nupack.Strand(trigger, name=tname)
+        trig_base_complex = f"({tname}+base)"
+        t1 = nupack.Tube(
+            strands={base: 5e-7, incumb: 5e-7, trig: 5e-7},
+            complexes=nupack.SetSpec(max_size=3),
+            name="t1",
+        )
+        complex_result = nupack.complex_analysis(
+            complexes=t1, model=model1, compute=["pfunc"]
+        )
+        complex_list.append(trig_base_complex)
+        free_energy_list.append(complex_result[trig_base_complex].free_energy)
+        seq_list.append((trigger.replace(" ", "")))
+        complex_conc = nupack.complex_concentrations(tube=t1, data=complex_result)
+        for complex_sturc, conc in complex_conc["t1"].complex_concentrations.items():
+            if complex_sturc.name == trig_base_complex:
+                conc_list.append(conc * 10**9)
 
     conc_dict = dict(zip(complex_list, conc_list))
     conc_df = pd.DataFrame.from_dict(conc_dict, orient="index", columns=["Conc (nM)"])
-    conc_df.to_pickle("./dna_sdr/pickles/concentration.pkl")
+
+    # conc_df.to_pickle("./dna_sdr/pickles/concentration_T1.pkl")
+    # conc_df.to_csv("concentration_T1.csv")
 
     complex_list.append("(incumb+base)")
     seq_list.append(("CA CAATC CA TCT CA CCACC CA".replace(" ", "")))
@@ -90,4 +102,5 @@ if __name__ == "__main__":
         free_energy_dict, orient="index", columns=["dG (kcal/mol)"]
     )
     free_energy_df["Seqences (5' to 3')"] = seq_list
-    free_energy_df.to_pickle("./dna_sdr/pickles/free_energy.pkl")
+    # free_energy_df.to_pickle("./dna_sdr/pickles/free_energy_T1.pkl")
+    # free_energy_df.to_csv("free_energy_T1.csv")

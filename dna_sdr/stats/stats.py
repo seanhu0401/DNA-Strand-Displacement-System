@@ -6,9 +6,9 @@ General statistical analysis functions
 """
 
 import itertools as it
-import os
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -18,6 +18,7 @@ import statsmodels.stats.multitest as mt
 from numpy.typing import NDArray
 from scipy import stats
 from statsmodels.formula.api import ols
+from pingouin import welch_anova, pairwise_gameshowell
 
 
 def __array_to_df(
@@ -205,6 +206,8 @@ def general_esd(data: NDArray, poss_outlier_count: int = 5, alpha: float = 0.05)
     test_stats_lst = []
     critical_value_lst = []
 
+    counter = 0
+
     for position in range(1, poss_outlier_count + 1):
         t_stat, position, point = test_stat(data_copy)
         crit = critical_value(data_copy, alpha)
@@ -213,10 +216,11 @@ def general_esd(data: NDArray, poss_outlier_count: int = 5, alpha: float = 0.05)
         critical_value_lst.append(crit)
 
         if t_stat > crit:
-            max_index = position
+            max_index = counter + 1
 
         data_copy = np.delete(data_copy, position)
         index_lst.append(position)
+        counter += 1
 
     result_table = pd.DataFrame(
         {
@@ -229,6 +233,7 @@ def general_esd(data: NDArray, poss_outlier_count: int = 5, alpha: float = 0.05)
     print(
         f"There are {max_index} possible outliers in the data based on the general ESD test"
     )
+
     outlier_index = index_lst[0:max_index]
 
     for position in outlier_index:
@@ -675,313 +680,72 @@ def analysis_df_gen(analysis_target: list, mode: str):
     return analysis_df
 
 
+def stats_analysis_routine(
+    model: str,
+    data: pd.DataFrame,
+    independent: str,
+    dependent: str,
+    ax1: Axes | None = None,
+    ax2: Axes | None = None,
+) -> tuple:
+
+    if ax1 is None:
+        ax1 = plt.gca()
+    if ax2 is None:
+        ax2 = plt.gca()
+
+    model_fit = ols(model, data=data).fit()
+
+    welch = welch_anova(data, dv=dependent, between=independent)
+    print(welch)
+
+    games_howell = pairwise_gameshowell(data, dv=dependent, between=independent)
+    print(games_howell)
+
+    print(stats.shapiro(model_fit.resid))
+
+    # Show the ANOVA residual against normal distribution
+    stats.probplot(model_fit.resid, plot=ax1, rvalue=True)
+    ax1.set_title(f"Probability plot of model's residuals - {dependent}", fontsize=14)
+
+    ax2.scatter(data[independent], model_fit.resid)
+    ax2.set_title(f"Variance plot of model's residuals - {dependent}", fontsize=14)
+
+    return welch, games_howell
+
+
 if __name__ == "__main__":
-    os.chdir("dna_sdr/pickles/")
+    INFO = "./dna_sdr/pickles/trig_info.pkl"
+    info_df: pd.DataFrame = pd.read_pickle(INFO)
+    info_df = info_df.rename({"plate_loc": "Trig"}, axis=1)
 
-    ### Mismatch type 1-3 same location (17)
-    # READ = ["P0_A1", "P2_A5", "P2_A6"]
-    ### Mismatch type 4-6 same location (18)
-    # READ = ["P2_A7", "P3_A3", "P3_A4"]
-    ### Mismatch type 7-9 same location (15)
-    READ = ["P2_A3", "P3_A5", "P3_A6"]
-    ### Mismatch type 2/8
-    READ = ["P0_A5", "P2_A1", "P2_A5", "P2_A10", "P2_D9", "P3_A1", "P3_A5"]
+    params_df: pd.DataFrame = pd.read_pickle(
+        "./dna_sdr/pickles/individual_Screen_param.pkl"
+    )
+    params_df = params_df.replace({"Screen_T1": "T1", "Screen_T3": "T3"})
 
-    ### Toehold variation 3-7
-    # READ = ["P1_A1", "P1_A7", "P1_A8", "P1_A9", "P1_A10"]
+    analysis_df = info_df.fillna(0).astype(int, errors="ignore")
+    analysis_df = info_df.loc[:, analysis_df.any()]
+    analysis_df = analysis_df.replace("P3_A00", "T3")
 
-    #
-    # READ = ["P0_A1", "P2_A5", "P2_A6", "P0_A5", "P2_D6", "P2_D7"]
+    result_df = pd.merge(analysis_df, params_df, on="Trig")
+    result_df = result_df[(result_df["r_sq_curve"] > 0.5) & (result_df["y_0"] < 300)]
 
-    #
-    # READ = ["P0_A1", "P2_A2", "P2_A4", "P2_D3", "P2_D7", "P2_D11"]
+    T1_df = result_df[
+        ~(result_df["name"].str.contains("T3"))
+        & (result_df["mismatch"] == 0)
+        & (result_df["toehold"] == 7)
+        & (result_df["overhang"] == 5)
+    ]
+    print(f"T1 rate: {np.mean(T1_df['rate']):.2e}\xB1{np.std(T1_df['rate']):.2e}")
 
-    MODE = "one_phase"
-    # MODE = "second_kinetic"
-    df = analysis_df_gen(READ, MODE)
-    if MODE == "one_phase":
-        df["rate"] = np.log(df["rate"])
-    elif MODE == "second_kinetic":
-        df["k_rate"] = np.log(df["k_rate"])
-
-    loc_lst = []
-    for loc in df["mismatch_loc"]:
-        loc_lst.append(loc[0])
-    df["mismatch_loc"] = loc_lst
-
-    type_lst = []
-    for types in df["mismatch_type"]:
-        type_lst.append(types[0])
-    df["mismatch_type"] = type_lst
-
-    ### One way ANOVA toehold length variation
-    # MODEL = "plateau ~ C(toehold)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_plateau = anova_table(aov)
-    # print(aov_table_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title("Probability plot of model's residuals - Plateau", fontsize=20)
-
-    # comp = mc.MultiComparison(df["plateau"], df["toehold"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_plateau = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-
-    # MODEL = "rate ~ C(toehold)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_rate = anova_table(aov)
-    # print(aov_table_rate)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[1], rvalue=True)
-    # axes[1].set_title("Probability plot of model's residuals - Rate", fontsize=20)
-
-    # comp = mc.MultiComparison(df["rate"], df["toehold"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_rate = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-
-    # MODEL = "k_rate ~ C(toehold)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_k_plateau = anova_table(aov)
-    # print(aov_table_k_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title(
-    #     "Probability plot of model's residuals - Rate constant",
-    #     fontsize=20,
-    # )
-
-    # comp = mc.MultiComparison(df["k_rate"], df["toehold"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_k_rate = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_k_rate)
-
-    # os.chdir("../")
-    # fig.savefig(
-    #     f"./image/summery/Screen/one_way_ANOVA_toehold_var_k_rate_prob_plot.pdf",
-    #     format="pdf",
-    # )
-    # aov_table_k_plateau.to_csv(f"./result/one_way_ANOVA_toehold_var_k_rate.csv")
-    # tukey_post_hoc_k_rate.to_csv(f"./result/one_way_ANOVA_toehold_var_k_rate_Tukey.csv")
-
-    ## One way ANOVA mistmatch type variation
-    # print("Plateau ANOVA")
-    # MODEL = "plateau ~ C(mismatch_type)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_plateau = anova_table(aov)
-    # print(aov_table_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title("Probability plot of model's residuals - Plateau", fontsize=20)
-
-    # comp = mc.MultiComparison(df["plateau"], df["mismatch_type"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_plateau = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_plateau)
-
-    # print("Rate ANOVA")
-    # MODEL = "rate ~ C(mismatch_type)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_rate = anova_table(aov)
-    # print(aov_table_rate)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[1], rvalue=True)
-    # axes[1].set_title("Probability plot of model's residuals - Rate", fontsize=20)
-
-    # comp = mc.MultiComparison(df["rate"], df["mismatch_type"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_rate = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_rate)
-
-    ## Second order kinetics analysis
-    # MODEL = "k_rate ~ C(mismatch_type)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_k_plateau = anova_table(aov)
-    # print(aov_table_k_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title(
-    #     "Probability plot of model's residuals - Rate constant",
-    #     fontsize=20,
-    # )
-
-    # comp = mc.MultiComparison(df["k_rate"], df["mismatch_type"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_k_rate = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_k_rate)
-
-    # os.chdir("../")
-    # fig.savefig(
-    #     f"./image/summery/Screen/one_way_ANOVA_mismatch_type_group_2_k_rate_prob_plot.pdf",
-    #     format="pdf",
-    # )
-    # aov_table_k_plateau.to_csv(
-    #     f"./result/one_way_ANOVA_mismatch_type_group_2_k_rate.csv"
-    # )
-    # tukey_post_hoc_k_rate.to_csv(
-    #     f"./result/one_way_ANOVA_mismatch_type_group_2_k_rate_Tukey.csv"
-    # )
-
-    ### One way ANOVA mistmatch type 1 varying location
-    # print("Plateau ANOVA")
-    # MODEL = "plateau ~ C(mismatch_loc)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_plateau = anova_table(aov)
-    # print(aov_table_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title("Probability plot of model's residuals - Plateau", fontsize=20)
-
-    # comp = mc.MultiComparison(df["plateau"], df["mismatch_loc"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_plateau = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_plateau)
-
-    # print("Rate ANOVA")
-    # MODEL = "rate ~ C(mismatch_loc)"
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=2)
-    # aov_table_rate = anova_table(aov)
-    # print(aov_table_rate)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # wstats, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {wstats:.4f}")
-    # p_value_printout(pvalue)
-
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[1], rvalue=True)
-    # axes[1].set_title("Probability plot of model's residuals - Rate", fontsize=20)
-
-    # comp = mc.MultiComparison(df["rate"], df["mismatch_loc"])
-    # post_hoc_res = comp.tukeyhsd()
-    # tukey_post_hoc_rate = pd.DataFrame(
-    #     data=post_hoc_res._results_table.data[1:],
-    #     columns=post_hoc_res._results_table.data[0],
-    # )
-    # print(tukey_post_hoc_rate)
-
-    ### Two way ANOVA mismatch type w/ diff. location
-    # MODEL = "plateau ~ C(mismatch_loc) + C(mismatch_type) + C(mismatch_loc):C(mismatch_type)"
-
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=3)
-    # aov_table_plateau = anova_table(aov)
-    # print(aov_table_plateau)
-
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # w, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {w:.4f}")
-    # p_value_printout(pvalue)
-    # fig, axes = plt.subplots(2, 1, figsize=(9.18, 5), layout="constrained", sharex=True)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[0], rvalue=True)
-    # axes[0].set_title("Probability plot of model's residuals - Plateau", fontsize=20)
-    # axes[0].set_xlabel(None)
-
-    # MODEL = (
-    #     "rate ~ C(mismatch_loc) + C(mismatch_type) + C(mismatch_loc):C(mismatch_type)"
-    # )
-
-    # model_fit = ols(MODEL, data=df).fit()
-    # aov = sm.stats.anova_lm(model_fit, typ=3)
-    # aov_table_rate = anova_table(aov)
-    # print(aov_table_rate)
-    # print("")
-    # print("Shapiro test for normality for the ANOVA residual")
-    # w, pvalue = stats.shapiro(model_fit.resid)
-    # print(f"The W stats is {w:.4f}")
-    # p_value_printout(pvalue)
-    # normality_plot, stat = stats.probplot(model_fit.resid, plot=axes[1], rvalue=True)
-    # axes[1].set_title("Probability plot of model's residuals - Rate", fontsize=20)
-
-    ### Export prob plot + ANOVA + TukeyHSD output
-    # plt.show()
-    # EXPORT = "one_way_ANOVA_mismatch_6_7_no_removal"
-
-    # os.chdir("../")
-    # fig.savefig(
-    #     f"./image/summery/Screen/{EXPORT}_prob_plot.pdf",
-    #     format="pdf",
-    # )
-    # aov_table = pd.concat([aov_table_plateau, aov_table_rate])
-    # aov_table.to_csv(f"./result/{EXPORT}.csv")
-    # tukey_table = pd.concat([tukey_post_hoc_plateau, tukey_post_hoc_rate])
-    # tukey_table.to_csv(f"./result/{EXPORT}_Tukey.csv")
+    T3_df = result_df[
+        (result_df["name"].str.contains("T3"))
+        & (result_df["mismatch"] == 0)
+        & (result_df["toehold"] == 7)
+        & (result_df["overhang"] == 5)
+    ]
+    print(f"T3 rate: {np.mean(T3_df['rate']):.2e}\xB1{np.std(T3_df['rate']):.2e}")
 
     # """
     # Graphical repersentation of the data distribution using boxplot and catagorical scatter plot

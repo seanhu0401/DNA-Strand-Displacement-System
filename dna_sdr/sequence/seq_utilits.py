@@ -260,6 +260,7 @@ if __name__ == "__main__":
     info_df[type_str_lst] = pd.DataFrame(
         info_df.mismatch_type.to_list(), index=info_df.index
     )
+    print(info_df[["name", "plate_loc"]])
 
     if os.path.exists(PICKLE_NAME):
         trigger_df = pd.read_pickle(PICKLE_NAME)

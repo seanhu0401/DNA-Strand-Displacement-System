@@ -5,6 +5,7 @@ This module utilized the data_processing module to process the data collected fo
 test type.
 
 """
+
 import glob
 import os
 import shutil
@@ -158,6 +159,6 @@ def main(test: str, fluorophore: str):
 
 
 if __name__ == "__main__":
-    TEST = "Ratio"
+    TEST = "Screen"
     F = "HEX"
     main(TEST, F)
