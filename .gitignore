@@ -16,7 +16,6 @@ jupyter
 *.ipynb
 *.xlsx
 *.pkl
-*.csv
 
 # Nupack + Nupack test files
 nupack-4.*
